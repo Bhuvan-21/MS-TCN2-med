@@ -90,6 +90,7 @@ def f_score(recognized, ground_truth, overlap, bg_class=["background"]):
     fn = len(y_label) - sum(hits)
     return float(tp), float(fp), float(fn)
 
+
 def roc_scores(recognized, ground_truth, scores, action_dict):
     rocs = []
     action_dict = dict((v,k) for k,v in action_dict.items()) 
@@ -97,15 +98,10 @@ def roc_scores(recognized, ground_truth, scores, action_dict):
         class_score = scores[c, :]
         cur_class = action_dict[c]
         class_gt = [1 if cur_class == ground_truth[i] else 0 for i in range(0, len(ground_truth))]
-        try:
-            roc = metrics.roc_auc_score(class_gt, class_score.tolist()[:-1])
-            rocs.append(roc)
-        except:
-            continue
-        #print(class_score.shape, len(class_gt), roc)
-    
+        # roc = metrics.roc_auc_score(class_gt, class_score.tolist()[:-1])
+        rocs.append((class_gt, class_score.tolist()[:-1]))
+        #print(class_score.shape, len(class_gt), roc) 
     return rocs
-
 
 
 def main():
@@ -137,8 +133,10 @@ def main():
     total = 0
     edit = 0
 
+    class_scores = [([], []) for i in range(0, len(actions_dict))]
+
     for vid in list_of_videos:
-        print(f"Working on {vid}...")
+        #print(f"Working on {vid}...")
         gt_file = ground_truth_path + vid
         gt_content = read_file(gt_file).split('\n')[0:-1]
 
@@ -161,10 +159,11 @@ def main():
             fp[s] += fp1
             fn[s] += fn1
 
-        # calculate ROC_AUC per class
-        rocs = roc_scores(recog_content, gt_content, recog_scores, actions_dict)
-        print("Average ROC AUC over all classes: ", np.mean(rocs))
-
+        # accumulate ground_truth/scores for ROC_AUC calculation per class
+        scores = roc_scores(recog_content, gt_content, recog_scores, actions_dict)
+        for i in range(len(class_scores)):
+            class_scores[i][0].extend(scores[i][0])
+            class_scores[i][1].extend(scores[i][1])
 
     print("Acc: %.4f" % (100*float(correct)/total))
     print('Edit: %.4f' % ((1.0*edit)/len(list_of_videos)))
@@ -173,11 +172,21 @@ def main():
     for s in range(len(overlap)):
         precision = tp[s] / float(tp[s]+fp[s])
         recall = tp[s] / float(tp[s]+fn[s])
+        sensitivity = tp[s] / float(tp[s]+fn[s])
+        specificity = (total - tp[s] - fn[s] - fp[s]) / float(total - tp[s] - fn[s]) 
 
         f1 = 2.0 * (precision*recall) / (precision+recall)
 
         f1 = np.nan_to_num(f1)*100
         print('F1@%0.2f: %.4f' % (overlap[s], f1))
+        print(f'Sensitivity@{overlap[s]:.2f}: {sensitivity:.4f}')
+        print(f'Specificity@{overlap[s]:.2f}: {specificity:.4f}')
+
+    aucs = []
+    for i in range(len(class_scores)):
+        aucs.append(metrics.roc_auc_score(class_scores[i][0],class_scores[i][1]))
+    print("ROC_AUC per class: ", list(zip(actions_dict.keys(), aucs)))
+    print("Average ROC AUC over all classes: ", np.mean(aucs))
 
 if __name__ == '__main__':
     main()
