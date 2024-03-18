@@ -3,6 +3,7 @@
 
 import numpy as np
 import argparse
+from sklearn import metrics
 
 
 def read_file(path):
@@ -89,6 +90,23 @@ def f_score(recognized, ground_truth, overlap, bg_class=["background"]):
     fn = len(y_label) - sum(hits)
     return float(tp), float(fp), float(fn)
 
+def roc_scores(recognized, ground_truth, scores, action_dict):
+    rocs = []
+    action_dict = dict((v,k) for k,v in action_dict.items()) 
+    for c in range(scores.shape[0]):
+        class_score = scores[c, :]
+        cur_class = action_dict[c]
+        class_gt = [1 if cur_class == ground_truth[i] else 0 for i in range(0, len(ground_truth))]
+        try:
+            roc = metrics.roc_auc_score(class_gt, class_score.tolist()[:-1])
+            rocs.append(roc)
+        except:
+            continue
+        #print(class_score.shape, len(class_gt), roc)
+    
+    return rocs
+
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -100,9 +118,17 @@ def main():
 
     ground_truth_path = "./data/"+args.dataset+"/groundTruth/"
     recog_path = "./results/"+args.dataset+"/split_"+args.split+"/"
+    scores_path = "./results/"+args.dataset+"/split_"+args.split+"/"
     file_list = "./data/"+args.dataset+"/splits/test.split"+args.split+".bundle"
-
+    mapping_file = "./data/"+args.dataset+"/mapping.txt"
+    
     list_of_videos = read_file(file_list).split('\n')[:-1]
+   
+    # Load class mappings 
+    actions = read_file(mapping_file).split('\n')[:-1]
+    actions_dict = dict()
+    for a in actions:
+        actions_dict[a.split()[1]] = int(a.split()[0])
 
     overlap = [.1, .25, .5]
     tp, fp, fn = np.zeros(3), np.zeros(3), np.zeros(3)
@@ -112,12 +138,15 @@ def main():
     edit = 0
 
     for vid in list_of_videos:
+        print(f"Working on {vid}...")
         gt_file = ground_truth_path + vid
         gt_content = read_file(gt_file).split('\n')[0:-1]
 
         recog_file = recog_path + vid.split('.')[0]
         recog_content = read_file(recog_file).split('\n')[1].split()
-
+        recog_scores = np.load(scores_path + vid.split('.')[0] + ".npy")
+        
+        # count correct predictions
         for i in range(len(gt_content)):
             total += 1
             if gt_content[i] == recog_content[i]:
@@ -125,11 +154,17 @@ def main():
 
         edit += edit_score(recog_content, gt_content)
 
+        # get 2x2 table for different overlap values
         for s in range(len(overlap)):
             tp1, fp1, fn1 = f_score(recog_content, gt_content, overlap[s])
             tp[s] += tp1
             fp[s] += fp1
             fn[s] += fn1
+
+        # calculate ROC_AUC per class
+        rocs = roc_scores(recog_content, gt_content, recog_scores, actions_dict)
+        print("Average ROC AUC over all classes: ", np.mean(rocs))
+
 
     print("Acc: %.4f" % (100*float(correct)/total))
     print('Edit: %.4f' % ((1.0*edit)/len(list_of_videos)))

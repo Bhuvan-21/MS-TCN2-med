@@ -8,7 +8,7 @@ from torch import optim
 import copy
 import numpy as np
 from loguru import logger
-
+from utils import write_str_to_file
 
 class MS_TCN2(nn.Module):
     def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes):
@@ -184,14 +184,23 @@ class Trainer:
                 input_x.unsqueeze_(0)
                 input_x = input_x.to(device)
                 predictions = self.model(input_x)
-                _, predicted = torch.max(predictions[-1].data, 1)
+                #print("Predictions: ", predictions[-1].data.shape)
+                max_values, predicted = torch.max(predictions[-1].data, 1)
+                #predicted_prob = F.softmax(predictions[-1], dim=1).data.squeeze()
                 predicted = predicted.squeeze()
+                max_values = max_values.squeeze()
+                #print(predicted_prob.shape, F.softmax(predicted_prob, dim=1))
+                
+                # map predicted index to action
                 recognition = []
                 for i in range(len(predicted)):
                     recognition = np.concatenate((recognition, [list(actions_dict.keys())[list(actions_dict.values()).index(predicted[i].item())]]*sample_rate))
+                #print(recognition.shape, recognition_prob.mean(), recognition_prob.min(), recognition_prob.max())
+                
+                # write predictions to file
                 f_name = vid.split('/')[-1].split('.')[0]
-                f_ptr = open(results_dir + "/" + f_name, "w")
-                f_ptr.write("### Frame level recognition: ###\n")
-                f_ptr.write(' '.join(recognition))
-                f_ptr.close()
+                write_str_to_file(results_dir + "/" + f_name, "### Frame level recognition: ###\n" + ' '.join(recognition)) 
+                np.save(results_dir + "/" + f_name + ".npy", predictions[-1].squeeze().cpu().detach().numpy())
+      
+
 
