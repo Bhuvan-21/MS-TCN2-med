@@ -5,3 +5,4 @@ python main.py --action=train --dataset=${1} --split=${2} \
                 --num_layers_PG=11 \
                 --num_layers_R=10 \
                 --num_R=3
+		--features_dim=${3}
