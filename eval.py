@@ -91,7 +91,7 @@ def f_score(recognized, ground_truth, overlap, bg_class=["background"]):
     return float(tp), float(fp), float(fn)
 
 
-def roc_scores(recognized, ground_truth, scores, action_dict):
+def prediction_scores(recognized, ground_truth, scores, action_dict):
     rocs = []
     action_dict = dict((v,k) for k,v in action_dict.items()) 
     for c in range(scores.shape[0]):
@@ -160,7 +160,7 @@ def main():
             fn[s] += fn1
 
         # accumulate ground_truth/scores for ROC_AUC calculation per class
-        scores = roc_scores(recog_content, gt_content, recog_scores, actions_dict)
+        scores = prediction_scores(recog_content, gt_content, recog_scores, actions_dict)
         for i in range(len(class_scores)):
             class_scores[i][0].extend(scores[i][0])
             class_scores[i][1].extend(scores[i][1])
@@ -182,11 +182,17 @@ def main():
         print(f'Sensitivity@{overlap[s]:.2f}: {sensitivity:.4f}')
         print(f'Specificity@{overlap[s]:.2f}: {specificity:.4f}')
 
-    aucs = []
+    roc_aucs = []
+    pr_aucs = []
     for i in range(len(class_scores)):
-        aucs.append(metrics.roc_auc_score(class_scores[i][0],class_scores[i][1]))
-    print("ROC_AUC per class: ", list(zip(actions_dict.keys(), aucs)))
-    print("Average ROC AUC over all classes: ", np.mean(aucs))
+        roc_aucs.append(metrics.roc_auc_score(class_scores[i][0],class_scores[i][1]))
+        pr_aucs.append(metrics.average_precision_score(class_scores[i][0], class_scores[i][1])) 
+
+    print("Average ROC AUC score over all classes: ", np.mean(roc_aucs))
+    print("Average PR AUC score over all classes: ", np.mean(pr_aucs))
+    print("ROC_AUC per class: ", list(zip(actions_dict.keys(), roc_aucs)))
+    print("PR_AUC per class: ", list(zip(actions_dict.keys(), pr_aucs)))
+
 
 if __name__ == '__main__':
     main()
