@@ -40,6 +40,7 @@ class BatchGenerator(object):
             features = np.load(self.features_path + vid.split('.')[0] + '.npy')
             file_ptr = open(self.gt_path + vid, 'r')
             content = file_ptr.read().split('\n')#[:-1]
+            if content[-1] == '': content = content[:-1]
             classes = np.zeros(min(np.shape(features)[1], len(content)))
             for i in range(len(classes)):
                 classes[i] = self.actions_dict[content[i]]

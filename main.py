@@ -5,7 +5,27 @@ from model import Trainer
 from batch_gen import BatchGenerator
 import os
 import argparse
+import pandas as pd
+from datetime import datetime
 import random
+
+
+def create_results_table(args, results_dir):
+    metrics = ['acc', 'edit', 'mean_roc', 'mean_pr_auc', 'f1@0.10', 'f1@0.25', 'f1@0.50', 'sen@0.10', 'spec@0.10', 'sen@0.25', 'spec@0.25', 'sen@0.50', 'spec@0.50']
+    cols = ['timestamp', 'results_dir']
+    
+    if not os.path.exists('./results.xlsx'): 
+        cols.extend(list(args.keys()))
+        cols.extend(metrics)
+        df = pd.DataFrame()
+    else:
+        df = pd.read_excel('./results.xlsx')
+
+    new_row = {'timestamp': str(datetime.now()), 'results_dir': results_dir} 
+    new_row.update(args)
+    new_row.update(dict.fromkeys(metrics))
+    df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+    df.to_excel('./results.xlsx', index=False)
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -84,4 +104,8 @@ if args.action == "train":
 
 if args.action == "predict":
     trainer.predict(model_dir, results_dir, features_path, vid_list_file_tst, num_epochs, actions_dict, device, sample_rate)
+    create_results_table(vars(args), results_dir) 
+
+
+
 

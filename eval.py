@@ -2,6 +2,7 @@
 # adapted from: https://github.com/colincsl/TemporalConvolutionalNetworks/blob/master/code/metrics.py
 
 import numpy as np
+import pandas as pd
 import argparse
 from sklearn import metrics
 
@@ -104,6 +105,10 @@ def prediction_scores(recognized, ground_truth, scores, action_dict):
     return rocs
 
 
+def write_result_to_table(df, name, result):
+    df.loc[df.index[-1], name] = result
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -119,6 +124,7 @@ def main():
     mapping_file = "./data/"+args.dataset+"/mapping.txt"
     
     list_of_videos = read_file(file_list).split('\n')[:-1]
+    results_df = pd.read_excel('./results.xlsx')
    
     # Load class mappings 
     actions = read_file(mapping_file).split('\n')[:-1]
@@ -169,6 +175,9 @@ def main():
     print('Edit: %.4f' % ((1.0*edit)/len(list_of_videos)))
     acc = (100*float(correct)/total)
     edit = ((1.0*edit)/len(list_of_videos))
+    write_result_to_table(results_df, 'acc', acc)
+    write_result_to_table(results_df, 'edit', edit)
+
     for s in range(len(overlap)):
         precision = tp[s] / float(tp[s]+fp[s])
         recall = tp[s] / float(tp[s]+fn[s])
@@ -181,6 +190,9 @@ def main():
         print('F1@%0.2f: %.4f' % (overlap[s], f1))
         print(f'Sensitivity@{overlap[s]:.2f}: {sensitivity:.4f}')
         print(f'Specificity@{overlap[s]:.2f}: {specificity:.4f}')
+        write_result_to_table(results_df, f'f1@{overlap[s]:.2f}', f1)
+        write_result_to_table(results_df, f'sen@{overlap[s]:.2f}', sensitivity)
+        write_result_to_table(results_df, f'spec@{overlap[s]:.2f}', specificity)
 
     roc_aucs = []
     pr_aucs = []
@@ -190,9 +202,16 @@ def main():
 
     print("Average ROC AUC score over all classes: ", np.mean(roc_aucs))
     print("Average PR AUC score over all classes: ", np.mean(pr_aucs))
+    write_result_to_table(results_df, 'mean_roc', np.mean(roc_aucs))
+    write_result_to_table(results_df, 'mean_pr_auc', np.mean(pr_aucs))
+
     print("ROC_AUC per class: ", list(zip(actions_dict.keys(), roc_aucs)))
     print("PR_AUC per class: ", list(zip(actions_dict.keys(), pr_aucs)))
+    for i, key in enumerate(actions_dict.keys()): 
+        write_result_to_table(results_df, key+'_roc', roc_aucs[i])
+        write_result_to_table(results_df, key+'_pr', pr_aucs[i])
 
+    results_df.to_excel('./results.xlsx', index=False)
 
 if __name__ == '__main__':
     main()
