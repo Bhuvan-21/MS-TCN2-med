@@ -1,7 +1,12 @@
+"""
+Run hyperparamter search on k folds. Trained on different splits, evaluated on the same
+TODO: Test on all folds and calc average metrics
+"""
+
+import itertools
 import subprocess 
 from os.path import join
 import click
-import pandas as pd
 
 
 @click.command()
@@ -16,35 +21,44 @@ def run(dataset, folds, num_epochs, features_dim):
     main_path = join(base_dir, 'main.py')
     eval_path = join(base_dir, 'eval.py')
 
-    for k in range(folds):
-        print(f'Running fold {k} on dataset {dataset}')
+    hp_space = {
+        'lambda': [0.1, 0.15, 0.25],
+        'refinement': [0, 1, 3]
+    }
+    keys, values = zip(*hp_space.items())
+    permutations = [dict(zip(keys, v)) for v in itertools.product(*values)]
+
+    print('Testing the following hyperparameter {len(permutations)} combinations: ', permutations)
+
+    for i, perm in enumerate(permutations):
+        cur_fold = i % folds
+        print(f'Running permutation {perm} on dataset {dataset}_{cur_fold}')
         # Train model on split
         subprocess.run(['python', main_path, 
                       '--action=train', 
                       f'--dataset={dataset}', 
-                      f'--split={k}', 
+                      f'--split={cur_fold}', 
                       f'--num_epochs={num_epochs}',
                       f'--features_dim={features_dim}',
-                      '--num_layers_PG=11', '--num_layers_R=10', '--num_R=3'
+                      f'--loss_lambda={perm["lambda"]}',
+                      f'--num_R={perm["refinement"]}',
+                      '--num_layers_PG=11', '--num_layers_R=10'
                       ], shell=False, check=False)
 
         #Run predictions on test set
-        subprocess.run(['python', main_path, 
+        evaluation_split = 0
+        subprocess.run(['python', main_path,
                       '--action=predict', 
                       f'--dataset={dataset}', 
-                      f'--split={k}', 
+                      f'--split={evaluation_split}', 
                       f'--num_epochs={num_epochs}',
                       f'--features_dim={features_dim}',
+                      f'--loss_lambda={perm["lambda"]}',
+                      f'--num_R={perm["refinement"]}',
                       '--num_layers_PG=11', '--num_layers_R=10', '--num_R=3'
                       ], shell=False, check=False)
-
         #Evaluate predictions
-        subprocess.run(['python', eval_path, f'--dataset={dataset}', f'--split={k}'], shell=False, check=False)
-
-
-def print_last_result(path):
-    df = pd.read_excel(join(path, 'results.xlsx'))
-    print(df.tail(1))
+        subprocess.run(['python', eval_path, f'--dataset={dataset}', f'--split={evaluation_split}'], shell=False, check=False)
 
 
 if __name__ == '__main__':

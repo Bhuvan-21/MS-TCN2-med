@@ -1,13 +1,14 @@
 #!/usr/bin/python2.7
 
-import torch
-from model import Trainer
-from batch_gen import BatchGenerator
 import os
 import argparse
-import pandas as pd
+import torch
 from datetime import datetime
 import random
+import pandas as pd
+from model import Trainer
+from batch_gen import BatchGenerator
+
 
 
 def create_results_table(args, results_dir):
@@ -49,6 +50,7 @@ def parse_arguments():
     parser.add_argument('--num_layers_PG', type=int)
     parser.add_argument('--num_layers_R', type=int)
     parser.add_argument('--num_R', type=int)
+    parser.add_argument('--loss_lambda', default=0.15, type=float)
     return parser.parse_args()
 
 
@@ -84,7 +86,8 @@ def run(args):
     # use the full temporal resolution @ 15fps
     sample_rate = 1
     # sample input features @ 15fps instead of 30 fps for 50salads, and up-sample the output to 30 fps
-    if args.dataset == "50salads": sample_rate = 2
+    if args.dataset == "50salads": 
+        sample_rate = 2
 
     vid_list_file = "./data/"+args.dataset+"/splits/train.split"+args.split+".bundle"
     vid_list_file_tst = "./data/"+args.dataset+"/splits/test.split"+args.split+".bundle"
@@ -96,7 +99,7 @@ def run(args):
     model_dir, results_dir = create_directories(args.dataset, args.split)
 
     num_classes = len(actions_dict)
-    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, args.dataset, args.split)
+    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, args.dataset, args.split, args.loss_lambda)
     if args.action == "train":
         batch_gen = BatchGenerator(num_classes, actions_dict, gt_path, features_path, sample_rate)
         batch_gen.read_data(vid_list_file)
@@ -108,5 +111,5 @@ def run(args):
 
 
 if __name__ == '__main__':
-    args = parse_arguments()
-    run(args)
+    arguments = parse_arguments()
+    run(arguments)
