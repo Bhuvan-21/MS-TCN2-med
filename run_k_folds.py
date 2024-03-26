@@ -6,7 +6,6 @@ from sklearn.model_selection import KFold
 import numpy as np
 
 
-
 @click.command()
 @click.option('--dataset', help='Name of the dataset (name as in ./data folder)')
 @click.option('--folds', '-k', default=4, help='Number of folds to run')
@@ -44,7 +43,7 @@ def run(dataset, folds, num_epochs, features_dim):
       #Evaluate predictions
       subprocess.run(['python', eval_path, f'--dataset={dataset}', f'--split={k}'], shell=False)
 
-      print_last_result(base_dir)
+      #print_last_result(base_dir)
 
 
 def print_last_result(path):
