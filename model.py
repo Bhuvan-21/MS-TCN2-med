@@ -131,7 +131,7 @@ class Trainer:
         self.ce = nn.CrossEntropyLoss(ignore_index=-100)
         self.mse = nn.MSELoss(reduction='none')
         self.num_classes = num_classes
-        self.lamb = loss_lambda
+        self.lamb = loss_lambda         #lambda parameter for weighting of MSE and CEL loss 
 
         logger.add('logs/' + dataset + "_" + split + "_{time}.log")
         logger.add(sys.stdout, colorize=True, format="{message}")
@@ -151,7 +151,7 @@ class Trainer:
                 predictions = self.model(batch_input)
 
                 loss = 0
-                for p in predictions:
+                for p in predictions: #p.shape (classes x num_frames)
                     loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1))
                     loss += self.lamb * torch.mean(torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=16)*mask[:, :, 1:])
 
@@ -202,6 +202,25 @@ class Trainer:
                 f_name = vid.split('/')[-1].split('.')[0]
                 write_str_to_file(results_dir + "/" + f_name, "### Frame level recognition: ###\n" + ' '.join(recognition)) 
                 np.save(results_dir + "/" + f_name + ".npy", predictions[-1].squeeze().cpu().detach().numpy())
-      
+     
+     def dice_loss(self, logits, targets, softmax=None):
+        probabilities = logits
+        if softmax is not None:
+            probabilities = nn.Softmax(dim=self.softmax_dim)(logits)
 
+        targets_one_hot = torch.nn.functional.one_hot(targets, num_classes=self.num_classes)
+        print(targets_one_hot.shape)
+        # Convert from NHWC to NCHW
+        targets_one_hot = targets_one_hot.permute(0, 3, 1, 2)
+        
+        # Multiply one-hot encoded ground truth labels with the probabilities to get the
+        # prredicted probability for the actual class.
+        intersection = (targets_one_hot * probabilities).sum()
+        
+        mod_a = intersection.sum()
+        mod_b = targets.numel()
+        
+        dice_coefficient = 2. * intersection / (mod_a + mod_b + smooth)
+        dice_loss = -dice_coefficient.log()
+        return dice_loss
 

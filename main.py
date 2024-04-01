@@ -86,7 +86,7 @@ def run(args):
     # use the full temporal resolution @ 15fps
     sample_rate = 1
     # sample input features @ 15fps instead of 30 fps for 50salads, and up-sample the output to 30 fps
-    if args.dataset == "50salads": 
+    if args.dataset == "50salads":
         sample_rate = 2
 
     vid_list_file = "./data/"+args.dataset+"/splits/train.split"+args.split+".bundle"
@@ -107,7 +107,7 @@ def run(args):
 
     if args.action == "predict":
         trainer.predict(model_dir, results_dir, features_path, vid_list_file_tst, num_epochs, actions_dict, device, sample_rate)
-        create_results_table(vars(args), results_dir) 
+        create_results_table(vars(args), results_dir)
 
 
 if __name__ == '__main__':
