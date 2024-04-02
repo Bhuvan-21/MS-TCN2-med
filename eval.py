@@ -181,15 +181,15 @@ def main():
     for s in range(len(overlap)):
         precision = tp[s] / float(tp[s]+fp[s])
         recall = tp[s] / float(tp[s]+fn[s])
-        sensitivity = tp[s] / float(tp[s]+fn[s])
-        specificity = (total - tp[s] - fn[s] - fp[s]) / float(total - tp[s] - fn[s]) 
+        sensitivity = tp[s] / float(tp[s]+fn[s]) * 100.0
+        specificity = (total - tp[s] - fn[s] - fp[s]) / float(total - tp[s] - fn[s]) * 100.0
 
         f1 = 2.0 * (precision*recall) / (precision+recall)
 
         f1 = np.nan_to_num(f1)*100
         print('F1@%0.2f: %.4f' % (overlap[s], f1))
-        print(f'Sensitivity@{overlap[s]:.2f}: {sensitivity:.4f}')
-        print(f'Specificity@{overlap[s]:.2f}: {specificity:.4f}')
+        print(f'Sensitivity@{overlap[s]:.2f}: {sensitivity:.2f}')
+        print(f'Specificity@{overlap[s]:.2f}: {specificity:.2f}')
         write_result_to_table(results_df, f'f1@{overlap[s]:.2f}', f1)
         write_result_to_table(results_df, f'sen@{overlap[s]:.2f}', sensitivity)
         write_result_to_table(results_df, f'spec@{overlap[s]:.2f}', specificity)
@@ -200,8 +200,8 @@ def main():
         roc_aucs.append(metrics.roc_auc_score(class_scores[i][0],class_scores[i][1]))
         pr_aucs.append(metrics.average_precision_score(class_scores[i][0], class_scores[i][1])) 
 
-    print("Average ROC AUC score over all classes: ", np.mean(roc_aucs))
-    print("Average PR AUC score over all classes: ", np.mean(pr_aucs))
+    print("Average ROC AUC score over all classes: ", np.mean(roc_aucs) * 100.0)
+    print("Average PR AUC score over all classes: ", np.mean(pr_aucs) * 100.0)
     write_result_to_table(results_df, 'mean_roc', np.mean(roc_aucs))
     write_result_to_table(results_df, 'mean_pr_auc', np.mean(pr_aucs))
 

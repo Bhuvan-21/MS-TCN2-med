@@ -13,7 +13,7 @@ from batch_gen import BatchGenerator
 
 def create_results_table(args, results_dir):
     metrics = ['acc', 'edit', 'mean_roc', 'mean_pr_auc', 'f1@0.10', 'f1@0.25', 'f1@0.50', 'sen@0.10', 'spec@0.10', 'sen@0.25', 'spec@0.25', 'sen@0.50', 'spec@0.50']
-    cols = ['timestamp', 'results_dir']
+    cols = ['timestamp', 'results_dir', 'N']
     
     if not os.path.exists('./results.xlsx'): 
         cols.extend(list(args.keys()))
@@ -21,8 +21,9 @@ def create_results_table(args, results_dir):
         df = pd.DataFrame()
     else:
         df = pd.read_excel('./results.xlsx')
-
-    new_row = {'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'results_dir': results_dir} 
+    
+    n_samples = sum(1 for _ in open(f'./data/{args["dataset"]}/splits/train.split{args["split"]}.bundle', 'rb'))
+    new_row = {'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"), 'results_dir': results_dir, 'N': n_samples} 
     new_row.update(args)
     new_row.update({k: 0.0 for k in metrics})
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)

@@ -202,25 +202,21 @@ class Trainer:
                 f_name = vid.split('/')[-1].split('.')[0]
                 write_str_to_file(results_dir + "/" + f_name, "### Frame level recognition: ###\n" + ' '.join(recognition)) 
                 np.save(results_dir + "/" + f_name + ".npy", predictions[-1].squeeze().cpu().detach().numpy())
-     
-     def dice_loss(self, logits, targets, softmax=None):
-        probabilities = logits
-        if softmax is not None:
-            probabilities = nn.Softmax(dim=self.softmax_dim)(logits)
 
-        targets_one_hot = torch.nn.functional.one_hot(targets, num_classes=self.num_classes)
-        print(targets_one_hot.shape)
-        # Convert from NHWC to NCHW
-        targets_one_hot = targets_one_hot.permute(0, 3, 1, 2)
-        
-        # Multiply one-hot encoded ground truth labels with the probabilities to get the
-        # prredicted probability for the actual class.
-        intersection = (targets_one_hot * probabilities).sum()
-        
-        mod_a = intersection.sum()
-        mod_b = targets.numel()
-        
-        dice_coefficient = 2. * intersection / (mod_a + mod_b + smooth)
-        dice_loss = -dice_coefficient.log()
-        return dice_loss
+
+        def dice_loss(self, logits, targets, softmax=None):
+            probabilities = logits
+            if softmax is not None:
+                probabilities = nn.Softmax(dim=self.softmax_dim)(logits)
+
+            targets_one_hot = torch.nn.functional.one_hot(targets, num_classes=self.num_classes)
+            print(targets_one_hot.shape) # Convert from NHWC to NCHW
+            targets_one_hot = targets_one_hot.permute(0, 3, 1, 2)
+            # Multiply one-hot encoded ground truth labels with the probabilities to get the prredicted probability for the actual class.
+            intersection = (targets_one_hot * probabilities).sum()
+            mod_a = intersection.sum()
+            mod_b = targets.numel()
+            dice_coefficient = 2. * intersection / (mod_a + mod_b + smooth)
+            dice_loss = -dice_coefficient.log()
+            return dice_loss
 
