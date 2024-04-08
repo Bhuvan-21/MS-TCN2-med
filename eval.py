@@ -14,7 +14,7 @@ def read_file(path):
     return content
 
 
-def get_labels_start_end_time(frame_wise_labels, bg_class=["background"]):
+def get_labels_start_end_time(frame_wise_labels, bg_class=["background2", ""]):
     labels = []
     starts = []
     ends = []
@@ -93,16 +93,17 @@ def f_score(recognized, ground_truth, overlap, bg_class=["background"]):
 
 
 def prediction_scores(recognized, ground_truth, scores, action_dict):
-    rocs = []
+    pairs = []
     action_dict = dict((v,k) for k,v in action_dict.items()) 
     for c in range(scores.shape[0]):
         class_score = scores[c, :]
         cur_class = action_dict[c]
-        class_gt = [1 if cur_class == ground_truth[i] else 0 for i in range(0, len(ground_truth))]
+        class_gt = [1 if cur_class == ground_truth[i] else 0 for i in range(0, class_score.shape[0])]
         # roc = metrics.roc_auc_score(class_gt, class_score.tolist()[:-1])
-        rocs.append((class_gt, class_score.tolist()[:-1]))
+        pairs.append((class_gt, class_score.tolist()[:]))
         #print(class_score.shape, len(class_gt), roc) 
-    return rocs
+        if len(class_gt) != class_score.shape[0]: print('Missmatch: ', cur_class, len(class_gt), class_score.shape)
+    return pairs
 
 
 def write_result_to_table(df, name, result):
@@ -144,7 +145,7 @@ def main():
     for vid in list_of_videos:
         #print(f"Working on {vid}...")
         gt_file = ground_truth_path + vid
-        gt_content = read_file(gt_file).split('\n')[0:-1]
+        gt_content = read_file(gt_file).split('\n')#[:-1]
 
         recog_file = recog_path + vid.split('.')[0]
         recog_content = read_file(recog_file).split('\n')[1].split()
@@ -153,6 +154,8 @@ def main():
         # count correct predictions
         for i in range(len(gt_content)):
             total += 1
+            if i > len(recog_content) - 1: 
+                continue
             if gt_content[i] == recog_content[i]:
                 correct += 1
 
@@ -170,6 +173,7 @@ def main():
         for i in range(len(class_scores)):
             class_scores[i][0].extend(scores[i][0])
             class_scores[i][1].extend(scores[i][1])
+            #print(len(class_scores[i][0]), len(class_scores[i][1]))
 
     print("Acc: %.4f" % (100*float(correct)/total))
     print('Edit: %.4f' % ((1.0*edit)/len(list_of_videos)))
@@ -197,8 +201,13 @@ def main():
     roc_aucs = []
     pr_aucs = []
     for i in range(len(class_scores)):
-        roc_aucs.append(metrics.roc_auc_score(class_scores[i][0],class_scores[i][1]))
-        pr_aucs.append(metrics.average_precision_score(class_scores[i][0], class_scores[i][1])) 
+        try: 
+            roc_aucs.append(metrics.roc_auc_score(class_scores[i][0],class_scores[i][1]))
+            pr_aucs.append(metrics.average_precision_score(class_scores[i][0], class_scores[i][1])) 
+        except: 
+            print('AUC error on class: ', i)
+            roc_aucs.append(np.mean(roc_aucs))
+            pr_aucs.append(np.mean(pr_aucs))
 
     print("Average ROC AUC score over all classes: ", np.mean(roc_aucs) * 100.0)
     print("Average PR AUC score over all classes: ", np.mean(pr_aucs) * 100.0)
