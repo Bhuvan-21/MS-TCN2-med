@@ -139,6 +139,7 @@ def main():
     correct = 0
     total = 0
     edit = 0
+    IoU = 0
 
     class_scores = [([], []) for i in range(0, len(actions_dict))]
 
@@ -160,6 +161,7 @@ def main():
                 correct += 1
 
         edit += edit_score(recog_content, gt_content)
+        IoU += metrics.jaccard_score(gt_content, recog_content, average='micro')
 
         # get 2x2 table for different overlap values
         for s in range(len(overlap)):
@@ -175,12 +177,16 @@ def main():
             class_scores[i][1].extend(scores[i][1])
             #print(len(class_scores[i][0]), len(class_scores[i][1]))
 
-    print("Acc: %.4f" % (100*float(correct)/total))
-    print('Edit: %.4f' % ((1.0*edit)/len(list_of_videos)))
     acc = (100*float(correct)/total)
     edit = ((1.0*edit)/len(list_of_videos))
+    IoU = 100 * IoU / len(list_of_videos)
+    print(f'Acc: {acc:.4f}')
+    print(f'Edit: {edit:.4f}')
+    print(f'IoU: {IoU:.4f}')
+    
     write_result_to_table(results_df, 'acc', acc)
     write_result_to_table(results_df, 'edit', edit)
+    write_result_to_table(results_df, 'IoU', IoU)
 
     for s in range(len(overlap)):
         precision = tp[s] / float(tp[s]+fp[s])
