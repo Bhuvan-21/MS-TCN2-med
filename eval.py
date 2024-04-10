@@ -5,13 +5,7 @@ import numpy as np
 import pandas as pd
 import argparse
 from sklearn import metrics
-
-
-def read_file(path):
-    with open(path, 'r') as f:
-        content = f.read()
-        f.close()
-    return content
+from utils import read_file, load_action_map
 
 
 def get_labels_start_end_time(frame_wise_labels, bg_class=["background2", ""]):
@@ -112,10 +106,8 @@ def write_result_to_table(df, name, result):
 
 def main():
     parser = argparse.ArgumentParser()
-
     parser.add_argument('--dataset', default="gtea")
     parser.add_argument('--split', default='1')
-
     args = parser.parse_args()
 
     ground_truth_path = "./data/"+args.dataset+"/groundTruth/"
@@ -128,10 +120,7 @@ def main():
     results_df = pd.read_excel('./results.xlsx')
    
     # Load class mappings 
-    actions = read_file(mapping_file).split('\n')[:-1]
-    actions_dict = dict()
-    for a in actions:
-        actions_dict[a.split()[1]] = int(a.split()[0])
+    actions_dict = load_action_map(mapping_file)
 
     overlap = [.1, .25, .5]
     tp, fp, fn = np.zeros(3), np.zeros(3), np.zeros(3)
@@ -170,7 +159,7 @@ def main():
             fp[s] += fp1
             fn[s] += fn1
 
-        # accumulate ground_truth/scores for ROC_AUC calculation per class
+        # accumulate ground_truth/probabilites for ROC_AUC calculation per class
         scores = prediction_scores(recog_content, gt_content, recog_scores, actions_dict)
         for i in range(len(class_scores)):
             class_scores[i][0].extend(scores[i][0])
@@ -217,11 +206,12 @@ def main():
 
     print("Average ROC AUC score over all classes: ", np.mean(roc_aucs) * 100.0)
     print("Average PR AUC score over all classes: ", np.mean(pr_aucs) * 100.0)
+    print("ROC_AUC per class: ", list(zip(actions_dict.keys(), roc_aucs)))
+    print("PR_AUC per class: ", list(zip(actions_dict.keys(), pr_aucs)))
+    
     write_result_to_table(results_df, 'mean_roc', np.mean(roc_aucs))
     write_result_to_table(results_df, 'mean_pr_auc', np.mean(pr_aucs))
 
-    print("ROC_AUC per class: ", list(zip(actions_dict.keys(), roc_aucs)))
-    print("PR_AUC per class: ", list(zip(actions_dict.keys(), pr_aucs)))
     for i, key in enumerate(actions_dict.keys()): 
         write_result_to_table(results_df, key+'_roc', roc_aucs[i])
         write_result_to_table(results_df, key+'_pr', pr_aucs[i])
