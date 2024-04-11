@@ -131,7 +131,7 @@ class Trainer:
         self.num_classes = num_classes
         self.lamb = loss_lambda         #lambda parameter for weighting of MSE and CEL loss 
         self.loss_dice = loss_dice     #dice loss parameter
-        self.weights = torch.from_numpy(weights).to(device)
+        self.weights = torch.Tensor(weights).to(device) if weights is not None else None
         self.ce = nn.CrossEntropyLoss(ignore_index=-100, weight=self.weights)
         self.mse = nn.MSELoss(reduction='none')
 
