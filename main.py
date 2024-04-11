@@ -6,13 +6,14 @@ import torch
 from datetime import datetime
 import random
 import pandas as pd
+import numpy as np
 from model import Trainer
 from batch_gen import BatchGenerator
 
 
 
 def create_results_table(args, results_dir):
-    metrics = ['acc', 'edit', 'mean_roc', 'mean_pr_auc', 'f1@0.10', 'f1@0.25', 'f1@0.50', 'sen@0.10', 'spec@0.10', 'sen@0.25', 'spec@0.25', 'sen@0.50', 'spec@0.50']
+    metrics = ['acc', 'edit', 'IoU', 'mean_roc', 'mean_pr_auc', 'f1@0.10', 'f1@0.25', 'f1@0.50', 'sen@0.10', 'spec@0.10', 'sen@0.25', 'spec@0.25', 'sen@0.50', 'spec@0.50']
     cols = ['timestamp', 'results_dir', 'N']
     
     if not os.path.exists('./results.xlsx'): 
@@ -52,6 +53,8 @@ def parse_arguments():
     parser.add_argument('--num_layers_R', type=int)
     parser.add_argument('--num_R', type=int)
     parser.add_argument('--loss_lambda', default=0.15, type=float)
+    parser.add_argument('--loss_dice', default=0.0, type=float)
+    parser.add_argument('--weights', default=None)
     return parser.parse_args()
 
 
@@ -70,6 +73,27 @@ def load_actions(mapping_file):
         actions = file_ptr.read().split('\n')[:-1]
     actions_dict = {a.split()[1]: int(a.split()[0]) for a in actions}
     return actions_dict
+
+
+def load_weights(weight_file, action_dict, inverse=True):
+    """
+    Weight file should be in the format: class_name weight
+    Action dict has the format: class_id: class_name
+    
+    returns a list of weights in the same order as the action_dict
+    """
+    with open(weight_file, 'r') as file_ptr:
+        weight_strs = file_ptr.readlines()
+        
+    weights = []
+    weight_dict = {}
+    for weight_str in weight_strs:
+        weight_str = weight_str.strip('\n')
+        weight_dict[weight_str.split()[0]] = float(weight_str.split()[1])  
+    for key in action_dict.keys():
+        weights.append(weight_dict[key])
+    
+    return 1.0 / np.array(weights) if inverse else np.array(weights)
 
 
 def run(args):
@@ -96,11 +120,12 @@ def run(args):
     gt_path = "./data/"+args.dataset+"/groundTruth/"
 
     actions_dict = load_actions(f"./data/{args.dataset}/mapping.txt")
+    weights = load_weights(f"./data/{args.dataset}/weights.txt", actions_dict) if args.weights else None
 
     model_dir, results_dir = create_directories(args.dataset, args.split)
 
     num_classes = len(actions_dict)
-    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, args.dataset, args.split, args.loss_lambda)
+    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, args.dataset, args.split, args.loss_lambda, args.loss_dice, weights, device)
     if args.action == "train":
         batch_gen = BatchGenerator(num_classes, actions_dict, gt_path, features_path, sample_rate)
         batch_gen.read_data(vid_list_file)

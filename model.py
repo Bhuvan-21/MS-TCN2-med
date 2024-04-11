@@ -126,12 +126,14 @@ class DilatedResidualLayer(nn.Module):
 
 
 class Trainer:
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes, dataset, split, loss_lambda):
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes, dataset, split, loss_lambda, loss_dice, weights, device):
         self.model = MS_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes)
-        self.ce = nn.CrossEntropyLoss(ignore_index=-100)
-        self.mse = nn.MSELoss(reduction='none')
         self.num_classes = num_classes
         self.lamb = loss_lambda         #lambda parameter for weighting of MSE and CEL loss 
+        self.loss_dice = loss_dice     #dice loss parameter
+        self.weights = torch.from_numpy(weights).to(device)
+        self.ce = nn.CrossEntropyLoss(ignore_index=-100, weight=self.weights)
+        self.mse = nn.MSELoss(reduction='none')
 
         logger.add('logs/' + dataset + "_" + split + "_{time}.log")
         logger.add(sys.stdout, colorize=True, format="{message}")
@@ -154,6 +156,7 @@ class Trainer:
                 for p in predictions: #p.shape (classes x num_frames)
                     loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1))
                     loss += self.lamb * torch.mean(torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=16)*mask[:, :, 1:])
+                    loss += self.loss_dice * self.calc_dice_loss(p, batch_target.view(-1), softmax=True)
 
                 epoch_loss += loss.item()
                 loss.backward()
@@ -204,19 +207,20 @@ class Trainer:
                 np.save(results_dir + "/" + f_name + ".npy", predictions[-1].squeeze().cpu().detach().numpy())
 
 
-        def dice_loss(self, logits, targets, softmax=None):
-            probabilities = logits
-            if softmax is not None:
-                probabilities = nn.Softmax(dim=self.softmax_dim)(logits)
+    def calc_dice_loss(self, logits, targets, softmax=None, smooth=1e-6):
+        probabilities = logits
+        if softmax is not None:
+            probabilities = nn.Softmax(dim=1)(logits)[0]
 
-            targets_one_hot = torch.nn.functional.one_hot(targets, num_classes=self.num_classes)
-            print(targets_one_hot.shape) # Convert from NHWC to NCHW
-            targets_one_hot = targets_one_hot.permute(0, 3, 1, 2)
-            # Multiply one-hot encoded ground truth labels with the probabilities to get the prredicted probability for the actual class.
-            intersection = (targets_one_hot * probabilities).sum()
-            mod_a = intersection.sum()
-            mod_b = targets.numel()
-            dice_coefficient = 2. * intersection / (mod_a + mod_b + smooth)
-            dice_loss = -dice_coefficient.log()
-            return dice_loss
+        targets_one_hot = torch.nn.functional.one_hot(targets, num_classes=self.num_classes)
+        # print(targets_one_hot.shape) # Convert from NHWC to NCHW
+        # print(targets_one_hot.shape, probabilities.shape)
+        targets_one_hot = targets_one_hot.permute(1, 0)
+        # Multiply one-hot encoded ground truth labels with the probabilities to get the prredicted probability for the actual class.
+        intersection = (targets_one_hot * probabilities).sum()
+        mod_a = intersection.sum()
+        mod_b = targets.numel()
+        dice_coefficient = 2. * intersection / (mod_a + mod_b + smooth)
+        dice_loss = -dice_coefficient.log()
+        return dice_loss
 
