@@ -36,7 +36,7 @@ def setup_device(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 
 def parse_arguments():
@@ -52,8 +52,9 @@ def parse_arguments():
     parser.add_argument('--num_layers_PG', type=int)
     parser.add_argument('--num_layers_R', type=int)
     parser.add_argument('--num_R', type=int)
-    parser.add_argument('--loss_lambda', default=0.15, type=float)
+    parser.add_argument('--loss_mse', default=0.15, type=float)
     parser.add_argument('--loss_dice', default=0.0, type=float)
+    parser.add_argument('--loss_focal', default=0.0, type=float)
     parser.add_argument('--weights', default=None)
     return parser.parse_args()
 
@@ -82,6 +83,7 @@ def load_weights(weight_file, action_dict, inverse=True):
     
     returns a list of weights in the same order as the action_dict
     """
+    if not os.path.exists(weight_file): return None
     with open(weight_file, 'r') as file_ptr:
         weight_strs = file_ptr.readlines()
         
@@ -125,7 +127,7 @@ def run(args):
     model_dir, results_dir = create_directories(args.dataset, args.split)
 
     num_classes = len(actions_dict)
-    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, args.dataset, args.split, args.loss_lambda, args.loss_dice, weights, device)
+    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, args.dataset, args.split, args.loss_mse, args.loss_dice, args.loss_focal, weights, device)
     if args.action == "train":
         batch_gen = BatchGenerator(num_classes, actions_dict, gt_path, features_path, sample_rate)
         batch_gen.read_data(vid_list_file)
@@ -138,4 +140,7 @@ def run(args):
 
 if __name__ == '__main__':
     arguments = parse_arguments()
+    print("## Parsed arguments:")
+    for arg, value in vars(arguments).items():
+        print(f"> {arg}: {value}")
     run(arguments)

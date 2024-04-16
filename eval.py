@@ -135,7 +135,8 @@ def main():
     for vid in list_of_videos:
         #print(f"Working on {vid}...")
         gt_file = ground_truth_path + vid
-        gt_content = read_file(gt_file).split('\n')#[:-1]
+        gt_content = read_file(gt_file).split('\n')
+        if gt_content[-1] == '': gt_content = gt_content[:-1]
 
         recog_file = recog_path + vid.split('.')[0]
         recog_content = read_file(recog_file).split('\n')[1].split()

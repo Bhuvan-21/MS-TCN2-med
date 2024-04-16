@@ -9,6 +9,7 @@ import copy
 import numpy as np
 from loguru import logger
 from utils import write_str_to_file
+from focalloss import FocalLoss
 
 class MS_TCN2(nn.Module):
     def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes):
@@ -126,14 +127,16 @@ class DilatedResidualLayer(nn.Module):
 
 
 class Trainer:
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes, dataset, split, loss_lambda, loss_dice, weights, device):
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes, dataset, split, loss_mse, loss_dice, loss_focal, weights, device):
         self.model = MS_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes)
         self.num_classes = num_classes
-        self.lamb = loss_lambda         #lambda parameter for weighting of MSE and CEL loss 
+        self.loss_mse = loss_mse         #lambda parameter for weighting of MSE and CEL loss 
         self.loss_dice = loss_dice     #dice loss parameter
+        self.loss_focal_param = loss_focal # focal loss parameter, gamma=0 is normal cross_entropy
         self.weights = torch.Tensor(weights).to(device) if weights is not None else None
         self.ce = nn.CrossEntropyLoss(ignore_index=-100, weight=self.weights)
         self.mse = nn.MSELoss(reduction='none')
+        self.fl = FocalLoss(gamma=self.loss_focal_param, alpha=self.weights) if loss_focal > 0 else self.ce
 
         logger.add('logs/' + dataset + "_" + split + "_{time}.log")
         logger.add(sys.stdout, colorize=True, format="{message}")
@@ -154,8 +157,9 @@ class Trainer:
 
                 loss = 0
                 for p in predictions: #p.shape (classes x num_frames)
-                    loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1))
-                    loss += self.lamb * torch.mean(torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=16)*mask[:, :, 1:])
+                    #loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1))
+                    loss += self.fl(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1))
+                    loss += self.loss_mse * torch.mean(torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=16)*mask[:, :, 1:])
                     loss += self.loss_dice * self.calc_dice_loss(p, batch_target.view(-1), softmax=True)
 
                 epoch_loss += loss.item()
