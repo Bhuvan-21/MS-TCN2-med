@@ -5,28 +5,7 @@ import numpy as np
 import pandas as pd
 import argparse
 from sklearn import metrics
-from utils import read_file, load_action_map
-
-
-def get_labels_start_end_time(frame_wise_labels, bg_class=["background2", ""]):
-    labels = []
-    starts = []
-    ends = []
-    last_label = frame_wise_labels[0]
-    if frame_wise_labels[0] not in bg_class:
-        labels.append(frame_wise_labels[0])
-        starts.append(0)
-    for i in range(len(frame_wise_labels)):
-        if frame_wise_labels[i] != last_label:
-            if frame_wise_labels[i] not in bg_class:
-                labels.append(frame_wise_labels[i])
-                starts.append(i)
-            if last_label not in bg_class:
-                ends.append(i)
-            last_label = frame_wise_labels[i]
-    if last_label not in bg_class:
-        ends.append(i)
-    return labels, starts, ends
+from utils import read_file, load_action_map, get_labels_start_end_time, plot_graphs_for_dataset
 
 
 def levenstein(p, y, norm=False):
@@ -218,6 +197,7 @@ def main():
         write_result_to_table(results_df, key+'_pr', pr_aucs[i])
 
     results_df.to_excel('./results.xlsx', index=False)
+    plot_graphs_for_dataset(args.dataset, args.split, f"./results/{args.dataset}/figures/")
 
 
 if __name__ == '__main__':
