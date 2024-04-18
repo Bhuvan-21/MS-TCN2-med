@@ -129,8 +129,9 @@ def plot_graphs_for_dataset(dataset_name, split, output_dir):
         
 def plot_confusion_matrix(ground_truth, predictions, actions_dict, output_dir, normalized='true'):
     action_labels = list(actions_dict.keys())
+    figsize = 40 if 'sics' in output_dir else 20
     mat = metrics.confusion_matrix(ground_truth, predictions, labels=action_labels)
-    fig, ax = plt.subplots(figsize=(20,20))
+    fig, ax = plt.subplots(figsize=(figsize,figsize))
     suffix = 'Normalized' if normalized is not None else 'Default'
     form = ".2%" if normalized is not None else "d"
     print(f"Plotting confusion matrix, plot-mode: {suffix.lower()}...")
