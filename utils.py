@@ -130,10 +130,11 @@ def plot_graphs_for_dataset(dataset_name, split, output_dir):
 def plot_confusion_matrix(ground_truth, predictions, actions_dict, output_dir, normalized='true'):
     action_labels = list(actions_dict.keys())
     mat = metrics.confusion_matrix(ground_truth, predictions, labels=action_labels)
-    fig, ax = plt.subplots(figsize=(16,16))
+    fig, ax = plt.subplots(figsize=(20,20))
     suffix = 'Normalized' if normalized is not None else 'Default'
     form = ".2%" if normalized is not None else "d"
     print(f"Plotting confusion matrix, plot-mode: {suffix.lower()}...")
+    plt.rcParams.update({'font.size': 16})
     
     display = metrics.ConfusionMatrixDisplay.from_predictions(ground_truth, predictions, labels=action_labels, 
                                                               normalize=normalized, display_labels=action_labels)
@@ -141,7 +142,8 @@ def plot_confusion_matrix(ground_truth, predictions, actions_dict, output_dir, n
     # ax.set_title(f"Confusion Matrix - {suffix}")
     ax.set_xticklabels(ax.get_xticklabels(), rotation=40)
     ax.set_yticklabels(['\n_'.join(l.get_text().split('_')) for l in ax.get_yticklabels()], rotation=0)
-    plt.rcParams.update({'font.size': 14})
+    ax.tick_params(labelsize=16)
+    
     plt.show()
     fig.savefig(os.path.join(output_dir, f"confusion_matrix_{suffix.lower()}.png"))
     plt.close()

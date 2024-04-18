@@ -171,7 +171,7 @@ def main():
         f1 = 2.0 * (precision*recall) / (precision+recall)
 
         f1 = np.nan_to_num(f1)*100
-        print('F1@%0.2f: %.4f' % (overlap[s], f1))
+        print(f'F1@{overlap[s]:.2f}: {f1:.2f}')
         print(f'Sensitivity@{overlap[s]:.2f}: {sensitivity:.2f}')
         print(f'Specificity@{overlap[s]:.2f}: {specificity:.2f}')
         write_result_to_table(results_df, f'f1@{overlap[s]:.2f}', f1)
@@ -189,8 +189,8 @@ def main():
             roc_aucs.append(np.mean(roc_aucs))
             pr_aucs.append(np.mean(pr_aucs))
 
-    print("Average ROC AUC score over all classes: ", np.mean(roc_aucs) * 100.0)
-    print("Average PR AUC score over all classes: ", np.mean(pr_aucs) * 100.0)
+    print(f"Average ROC AUC score over all classes: {np.mean(roc_aucs) * 100.0:.2f}")
+    print(f"Average PR AUC score over all classes: {np.mean(pr_aucs) * 100.0:.2f}")
     print("ROC_AUC per class: ", list(zip(actions_dict.keys(), roc_aucs)))
     print("PR_AUC per class: ", list(zip(actions_dict.keys(), pr_aucs)))
     
