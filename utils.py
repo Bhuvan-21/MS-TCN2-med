@@ -1,8 +1,10 @@
 import os
 import numpy as np
 import pandas as pd
+import sklearn
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
+from sklearn import metrics
 
 
 def write_str_to_file(filename, content):
@@ -123,6 +125,27 @@ def plot_graphs_for_dataset(dataset_name, split, output_dir):
         plt.show()
         fig.savefig(output_dir + case + ".png")
         plt.close()
+
+        
+def plot_confusion_matrix(ground_truth, predictions, actions_dict, output_dir, normalized='true'):
+    action_labels = list(actions_dict.keys())
+    mat = metrics.confusion_matrix(ground_truth, predictions, labels=action_labels)
+    fig, ax = plt.subplots(figsize=(16,16))
+    suffix = 'Normalized' if normalized is not None else 'Default'
+    form = ".2%" if normalized is not None else "d"
+    print(f"Plotting confusion matrix, plot-mode: {suffix.lower()}...")
+    
+    display = metrics.ConfusionMatrixDisplay.from_predictions(ground_truth, predictions, labels=action_labels, 
+                                                              normalize=normalized, display_labels=action_labels)
+    display.plot(ax=ax, cmap="viridis", values_format=form, colorbar=False)
+    # ax.set_title(f"Confusion Matrix - {suffix}")
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=40)
+    ax.set_yticklabels(['\n_'.join(l.get_text().split('_')) for l in ax.get_yticklabels()], rotation=0)
+    plt.rcParams.update({'font.size': 14})
+    plt.show()
+    fig.savefig(os.path.join(output_dir, f"confusion_matrix_{suffix.lower()}.png"))
+    plt.close()
+
 
 # dataset = "sics73_rgb"
 # plot_graphs_for_dataset(dataset, 0, f"./results/{dataset}/figures/")

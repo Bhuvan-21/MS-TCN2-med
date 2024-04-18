@@ -8,6 +8,7 @@ from torch import optim
 import copy
 import numpy as np
 from loguru import logger
+from tqdm import tqdm
 from utils import write_str_to_file
 from focalloss import FocalLoss
 
@@ -184,7 +185,7 @@ class Trainer:
             file_ptr = open(vid_list_file, 'r')
             list_of_vids = file_ptr.read().split('\n')[:-1]
             file_ptr.close()
-            for vid in list_of_vids:
+            for vid in tqdm(list_of_vids):
                 #print vid
                 features = np.load(features_path + vid.split('.')[0] + '.npy')
                 features = features[:, ::sample_rate]

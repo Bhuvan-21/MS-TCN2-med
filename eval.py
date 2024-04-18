@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import argparse
 from sklearn import metrics
-from utils import read_file, load_action_map, get_labels_start_end_time, plot_graphs_for_dataset
+from utils import read_file, load_action_map, get_labels_start_end_time, plot_graphs_for_dataset, plot_confusion_matrix
 
 
 def levenstein(p, y, norm=False):
@@ -110,6 +110,7 @@ def main():
     IoU = 0
 
     class_scores = [([], []) for i in range(0, len(actions_dict))]
+    accumulated_gt, accumulated_predictions = [], []
 
     for vid in list_of_videos:
         #print(f"Working on {vid}...")
@@ -131,6 +132,10 @@ def main():
 
         edit += edit_score(recog_content, gt_content)
         IoU += metrics.jaccard_score(gt_content, recog_content, average='micro')
+        
+        # Accumlate results for later metrics
+        accumulated_gt += gt_content
+        accumulated_predictions += recog_content
 
         # get 2x2 table for different overlap values
         for s in range(len(overlap)):
@@ -197,7 +202,11 @@ def main():
         write_result_to_table(results_df, key+'_pr', pr_aucs[i])
 
     results_df.to_excel('./results.xlsx', index=False)
-    plot_graphs_for_dataset(args.dataset, args.split, f"./results/{args.dataset}/figures/")
+    output_dir = f"./results/{args.dataset}/figures/"
+    plot_graphs_for_dataset(args.dataset, args.split, output_dir)
+    plot_confusion_matrix(accumulated_gt, accumulated_predictions, actions_dict, output_dir, normalized='true')
+    plot_confusion_matrix(accumulated_gt, accumulated_predictions, actions_dict, output_dir, normalized=None)
+    #print(metrics.confusion_matrix(accumulated_gt, accumulated_predictions, labels=list(actions_dict.keys())))
 
 
 if __name__ == '__main__':
