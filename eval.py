@@ -202,7 +202,7 @@ def main():
         write_result_to_table(results_df, key+'_pr', pr_aucs[i])
 
     results_df.to_excel('./results.xlsx', index=False)
-    output_dir = f"./results/{args.dataset}/figures/"
+    output_dir = f"./results/{args.dataset}/figures.split{args.split}/"
     plot_graphs_for_dataset(args.dataset, args.split, output_dir)
     plot_confusion_matrix(accumulated_gt, accumulated_predictions, actions_dict, output_dir, normalized='true')
     plot_confusion_matrix(accumulated_gt, accumulated_predictions, actions_dict, output_dir, normalized=None)

@@ -76,7 +76,7 @@ def get_labels(dataset_name):
     else:
         labels = ['background', 'main_incision_entry', 'cautery', 'peritomy', 'tunnel_suture', 'hydroprocedure', 'conjunctival_cautery', 'tunnel', 
                   'nucleus_prolapse', 'OVD_IOL_insertion', 'sideport', 'scleral_groove', 'OVD_injection', 'cortical_wash', 'OVD_wash', 'stromal_hydration', 
-                  'nucleus_delivery', 'incision', 'capsulorrhexis', 'AB_injection_and_wash']
+                  'nucleus_delivery', 'incision', 'capsulorrhexis', 'AB_injection_and_wash', 'SR_bridle_suture']
     return labels
 
 
