@@ -146,6 +146,7 @@ class Trainer:
         self.model.train()
         self.model.to(device)
         optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
+        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[int(0.6 * num_epochs), int(0.9 * num_epochs)], gamma=0.3)
         for epoch in range(num_epochs):
             epoch_loss = 0
             correct = 0
@@ -171,6 +172,7 @@ class Trainer:
                 correct += ((predicted == batch_target).float()*mask[:, 0, :].squeeze(1)).sum().item()
                 total += torch.sum(mask[:, 0, :]).item()
 
+            scheduler.step()
             batch_gen.reset()
             torch.save(self.model.state_dict(), save_dir + "/epoch-" + str(epoch + 1) + ".model")
             torch.save(optimizer.state_dict(), save_dir + "/epoch-" + str(epoch + 1) + ".opt")

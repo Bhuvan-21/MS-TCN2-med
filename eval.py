@@ -191,11 +191,11 @@ def main():
 
     print(f"Average ROC AUC score over all classes: {np.mean(roc_aucs) * 100.0:.2f}")
     print(f"Average PR AUC score over all classes: {np.mean(pr_aucs) * 100.0:.2f}")
-    print("ROC_AUC per class: ", list(zip(actions_dict.keys(), roc_aucs)))
-    print("PR_AUC per class: ", list(zip(actions_dict.keys(), pr_aucs)))
+    print("ROC_AUC per class: ", list(zip(actions_dict.keys(), map(lambda d: round(d, 4), roc_aucs))))
+    print("PR_AUC per class: ", list(zip(actions_dict.keys(), map(lambda d: round(d, 4), pr_aucs))))
     
-    write_result_to_table(results_df, 'mean_roc', np.mean(roc_aucs))
-    write_result_to_table(results_df, 'mean_pr_auc', np.mean(pr_aucs))
+    write_result_to_table(results_df, 'mean_roc', np.mean(roc_aucs) * 100.0)
+    write_result_to_table(results_df, 'mean_pr_auc', np.mean(pr_aucs) * 100.0 )
 
     for i, key in enumerate(actions_dict.keys()): 
         write_result_to_table(results_df, key+'_roc', roc_aucs[i])
