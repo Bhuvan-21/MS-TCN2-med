@@ -128,16 +128,20 @@ class DilatedResidualLayer(nn.Module):
 
 
 class Trainer:
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes, dataset, split, loss_mse, loss_dice, loss_focal, weights, device):
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes, dataset, split, loss_mse, loss_dice, loss_focal, weights, w_coeff, device):
         self.model = MS_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes)
         self.num_classes = num_classes
         self.loss_mse = loss_mse         #lambda parameter for weighting of MSE and CEL loss 
         self.loss_dice = loss_dice     #dice loss parameter
         self.loss_focal_param = loss_focal # focal loss parameter, gamma=0 is normal cross_entropy
-        self.weights = torch.Tensor(weights).to(device) if weights is not None else None
+        self.weights = None
+        if weights is not None: 
+            self.weights = torch.Tensor(weights).to(device)
+            self.weights = self.weights * (1 - w_coeff) + w_coeff / self.weights.shape[0]
         self.ce = nn.CrossEntropyLoss(ignore_index=-100, weight=self.weights)
         self.mse = nn.MSELoss(reduction='none')
-        self.fl = FocalLoss(gamma=self.loss_focal_param, alpha=self.weights) if loss_focal > 0 else self.ce
+        self.fl = FocalLoss(gamma=self.loss_focal_param, alpha=self.weights) if loss_focal > 0.0 else self.ce
+        self.mse_window = 30
 
         logger.add('logs/' + dataset + "_" + split + "_{time}.log")
         logger.add(sys.stdout, colorize=True, format="{message}")
@@ -147,6 +151,7 @@ class Trainer:
         self.model.to(device)
         optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
         scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[int(0.6 * num_epochs), int(0.9 * num_epochs)], gamma=0.3)
+        smooth_vec = torch.from_numpy(np.concatenate([np.geomspace(0.1, 1.0, self.mse_window//2)[::-1], np.geomspace(0.1, 1.0, self.mse_window//2)])).to(device)
         for epoch in range(num_epochs):
             epoch_loss = 0
             correct = 0
@@ -156,12 +161,18 @@ class Trainer:
                 batch_input, batch_target, mask = batch_input.to(device), batch_target.to(device), mask.to(device)
                 optimizer.zero_grad()
                 predictions = self.model(batch_input)
-
                 loss = 0
                 for p in predictions: #p.shape (classes x num_frames)
                     #loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1))
-                    loss += self.fl(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1))
-                    loss += self.loss_mse * torch.mean(torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=16)*mask[:, :, 1:])
+                    loss += self.fl(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1)) # cross-entropy loss or focal loss
+                    mse_values = torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=16) * mask[:, :, 1:]
+                    mse_values = torch.mean(mse_values, dim=1)
+                    class_changes_tensor = torch.diff(batch_target.view(-1)) # get class changes that should not be mse punished
+                    class_changes_tensor = torch.nonzero(class_changes_tensor).squeeze()
+                    for elm in class_changes_tensor:
+                        if elm <= 30 or batch_target.view(-1).shape[0] - elm <= 30: continue # Exclude index close to the start/end of the ground truth
+                        mse_values[0, elm:elm+smooth_vec.shape[0]] = mse_values[0, elm:elm+smooth_vec.shape[0]] * smooth_vec
+                    loss += self.loss_mse * torch.mean(mse_values)
                     loss += self.loss_dice * self.calc_dice_loss(p, batch_target.view(-1), softmax=True)
 
                 epoch_loss += loss.item()
@@ -172,8 +183,11 @@ class Trainer:
                 correct += ((predicted == batch_target).float()*mask[:, 0, :].squeeze(1)).sum().item()
                 total += torch.sum(mask[:, 0, :]).item()
 
+            last_lr = scheduler.get_last_lr()
             scheduler.step()
             batch_gen.reset()
+            if last_lr != scheduler.get_last_lr(): 
+                logger.info(f"Reduced learning rate from {last_lr} to {scheduler.get_last_lr()}")
             torch.save(self.model.state_dict(), save_dir + "/epoch-" + str(epoch + 1) + ".model")
             torch.save(optimizer.state_dict(), save_dir + "/epoch-" + str(epoch + 1) + ".opt")
             logger.info("[epoch %d]: epoch loss = %f,   acc = %f" % (epoch + 1, epoch_loss / len(batch_gen.list_of_examples),

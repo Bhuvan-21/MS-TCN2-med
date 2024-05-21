@@ -130,7 +130,7 @@ def main():
             if gt_content[i] == recog_content[i]:
                 correct += 1
 
-        edit += edit_score(recog_content, gt_content)
+        edit += edit_score(recog_content, gt_content, bg_class=[""])
         IoU += metrics.jaccard_score(gt_content, recog_content, average='micro')
         
         # Accumlate results for later metrics
@@ -139,7 +139,7 @@ def main():
 
         # get 2x2 table for different overlap values
         for s in range(len(overlap)):
-            tp1, fp1, fn1 = f_score(recog_content, gt_content, overlap[s])
+            tp1, fp1, fn1 = f_score(recog_content, gt_content, overlap[s], bg_class=[""])
             tp[s] += tp1
             fp[s] += fp1
             fn[s] += fn1
@@ -165,18 +165,10 @@ def main():
     for s in range(len(overlap)):
         precision = tp[s] / float(tp[s]+fp[s])
         recall = tp[s] / float(tp[s]+fn[s])
-        sensitivity = tp[s] / float(tp[s]+fn[s]) * 100.0
-        specificity = (total - tp[s] - fn[s] - fp[s]) / float(total - tp[s] - fn[s]) * 100.0
-
         f1 = 2.0 * (precision*recall) / (precision+recall)
-
         f1 = np.nan_to_num(f1)*100
         print(f'F1@{overlap[s]:.2f}: {f1:.2f}')
-        print(f'Sensitivity@{overlap[s]:.2f}: {sensitivity:.2f}')
-        print(f'Specificity@{overlap[s]:.2f}: {specificity:.2f}')
         write_result_to_table(results_df, f'f1@{overlap[s]:.2f}', f1)
-        write_result_to_table(results_df, f'sen@{overlap[s]:.2f}', sensitivity)
-        write_result_to_table(results_df, f'spec@{overlap[s]:.2f}', specificity)
 
     roc_aucs = []
     pr_aucs = []

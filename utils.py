@@ -79,6 +79,7 @@ def get_labels(dataset_name):
                   'nucleus_delivery', 'incision', 'capsulorrhexis', 'AB_injection_and_wash', 'SR_bridle_suture']
     return labels
 
+######## VISUALIZATION ########
 
 def get_colormap(labels, cm_name='viridis'):
     colormap = colormaps[cm_name]
@@ -148,6 +149,51 @@ def plot_confusion_matrix(ground_truth, predictions, actions_dict, output_dir, n
     plt.show()
     fig.savefig(os.path.join(output_dir, f"confusion_matrix_{suffix.lower()}.png"))
     plt.close()
+
+
+######## METRICS #############
+
+def levenstein(p, y, norm=False):
+    m_row = len(p)
+    n_col = len(y)
+    D = np.zeros([m_row+1, n_col+1], np.float64)
+    for i in range(m_row+1):
+        D[i, 0] = i
+    for i in range(n_col+1):
+        D[0, i] = i
+
+    for j in range(1, n_col+1):
+        for i in range(1, m_row+1):
+            if y[j-1] == p[i-1]:
+                D[i, j] = D[i-1, j-1]
+            else:
+                D[i, j] = min(D[i-1, j] + 1,
+                              D[i, j-1] + 1,
+                              D[i-1, j-1] + 1)
+
+    if norm:
+        score = (1 - D[-1, -1]/max(m_row, n_col)) * 100
+    else:
+        score = D[-1, -1]
+
+    return score
+
+
+def edit_score(recognized, ground_truth, norm=True, bg_class=[""]):
+    P, _, _ = get_labels_start_end_time(recognized, bg_class)
+    Y, _, _ = get_labels_start_end_time(ground_truth, bg_class)
+    return levenstein(P, Y, norm)
+
+
+def collaps_confusion_matrix(y_true, y_pred):
+    cm = metrics.confusion_matrix(y_true, y_pred)
+    tp, tn, fp, fn = 0, 0, 0, 0
+    for row_idx in range(cm.shape[0]):
+        tp += cm[row_idx, row_idx]
+        fp += cm[row_idx, :].sum() - cm[row_idx, row_idx]
+        fn += cm[:, row_idx].sum() - cm[row_idx, row_idx]
+        tn += cm.sum() - tp - fp - fn 
+    return tp, tn, fp, fn
 
 
 # dataset = "sics73_rgb"

@@ -56,6 +56,7 @@ def parse_arguments():
     parser.add_argument('--loss_dice', default=0.0, type=float)
     parser.add_argument('--loss_focal', default=0.0, type=float)
     parser.add_argument('--weights', default=None)
+    parser.add_argument('--weights_coeff', default=1.0, type=float)
     return parser.parse_args()
 
 
@@ -127,7 +128,7 @@ def run(args):
     model_dir, results_dir = create_directories(args.dataset, args.split)
 
     num_classes = len(actions_dict)
-    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, args.dataset, args.split, args.loss_mse, args.loss_dice, args.loss_focal, weights, device)
+    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, args.dataset, args.split, args.loss_mse, args.loss_dice, args.loss_focal, weights, args.weights_coeff, device)
     if args.action == "train":
         batch_gen = BatchGenerator(num_classes, actions_dict, gt_path, features_path, sample_rate)
         batch_gen.read_data(vid_list_file)
