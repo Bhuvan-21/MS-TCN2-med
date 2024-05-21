@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import sklearn
 import matplotlib.pyplot as plt
+from os.path import join
 from matplotlib import colormaps
 from sklearn import metrics
 
@@ -196,5 +197,29 @@ def collaps_confusion_matrix(y_true, y_pred):
     return tp, tn, fp, fn
 
 
+def prepare_results(ground_truth_dir, results_dir, action_dict, sample_rate=1):
+    results_files = os.listdir(results_dir)
+    probability_files = [file for file in results_files if '.npy' in file]
+
+    actions2num = np.vectorize(lambda d: action_dict[d])
+    results = {"labels": [], "predictions": [], "probs": []}
+
+    for probs_files in probability_files:
+        probs = np.load(join(results_dir, probs_files))[:, 0::sample_rate]
+        prediction = open(join(results_dir, probs_files.replace('.npy', '')), 'r').read().split('\n')[1].split()
+        ground_truth = open(join(ground_truth_dir, probs_files.replace('.npy', '.txt')), 'r').read().split('\n')
+        ground_truth = ground_truth[0::sample_rate]
+        ground_truth = ground_truth[:probs.shape[1]]
+        prediction = prediction[0::sample_rate]
+        prediction = prediction[:probs.shape[1]]
+        assert probs.shape[1] == len(ground_truth)
+
+        ground_truth = actions2num(ground_truth)
+        prediction = actions2num(prediction)
+
+        results["labels"].append(ground_truth)
+        results["predictions"].append(prediction)
+        results["probs"].append(probs)
+    return results
 # dataset = "sics73_rgb"
 # plot_graphs_for_dataset(dataset, 0, f"./results/{dataset}/figures/")
