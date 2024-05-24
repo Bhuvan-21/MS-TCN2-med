@@ -47,6 +47,10 @@ def bootstrap_metric(results, metric, alpha=0.5, num_samples=500, seed=0):
     return bootstrap_mean, (ci_lower, ci_upper)
 
 
+def write_result_to_table(df, name, result):
+    df.loc[df.index[-1], name] = result
+
+
 def evaluation():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', required=True)
@@ -66,12 +70,12 @@ def evaluation():
     accumulated_probs = np.empty((0, len(actions_dict)))
     tp, tn, fp, fn = 0, 0, 0, 0
     scores = {
-        "accuracy": 0,
-        "edit": [],
-        "f1": [],
+        "boot_accuracy": 0,
+        "boot_edit": [],
+        "f1_micro": [],
         # "IoU": [],
-        "roc_auc": [],
-        "pr_auc": [],
+        "boot_roc_auc": [],
+        "boot_pr_auc": [],
         "sensitivity": [], # Recall
         "specificity": []
     }
@@ -89,8 +93,7 @@ def evaluation():
         
         gt_content = [actions_dict[action] for action in gt_content] # transform actions names to integers
         predictions = [actions_dict[action] for action in predictions]
-        
-        scores['edit'].append(edit_score(predictions, gt_content, bg_class=[0]))
+        #scores['edit'].append(edit_score(predictions, gt_content, bg_class=[0]))
         
         accumulated_gt += gt_content # Accumlate results for later processing
         accumulated_predictions += predictions
@@ -101,27 +104,31 @@ def evaluation():
             return tp / (tp + fn) if metric == 'sens' else tn / (tn + fp)
 
     results = prepare_results(ground_truth_path, predictions_path, actions_dict, sample_rate=5)
-    scores['accuracy'] = bootstrap_metric(results, metrics.accuracy_score)
+    scores['boot_accuracy'] = bootstrap_metric(results, metrics.accuracy_score)
     # scores['IoU'] = metrics.jaccard_score(accumulated_gt, accumulated_predictions, average='macro')
-    scores['f1'] = bootstrap_metric(results, lambda a, b: metrics.f1_score(a, b, average='micro'))
-    scores['roc_auc'] = bootstrap_metric(results, metrics.roc_auc_score)
-    scores['pr_auc'] = bootstrap_metric(results, metrics.average_precision_score)
+    scores['f1_micro'] = bootstrap_metric(results, lambda a, b: metrics.f1_score(a, b, average='micro'))
+    scores['boot_roc_auc'] = bootstrap_metric(results, metrics.roc_auc_score)
+    scores['boot_pr_auc'] = bootstrap_metric(results, metrics.average_precision_score)
     scores['sensitivity'] = bootstrap_metric(results, lambda a, b: calc_sen_spec(a, b))
     scores['specificity'] = bootstrap_metric(results, lambda a, b: calc_sen_spec(a, b, metric='spec'))
     # scores['edit'] = np.mean(scores['edit']) / 100
-    scores['edit'] = bootstrap_metric(results, edit_score)
+    scores['boot_edit'] = bootstrap_metric(results, edit_score)
     
     print(f"# Average scores for {args.dataset}, split {args.split}:")
-    for k, v in scores.items(): # Calculate average scores
+    for k, v in scores.items(): # Print and write scores
         if type(v) == tuple:
             print(f"- {k}: {v[0] * 100:.2f} ({v[1][0]:.3f} - {v[1][1]:.3f})")
+            write_result_to_table(results_df, k, v[0] * 100)
+            write_result_to_table(results_df, k + '_lci', v[1][0])
+            write_result_to_table(results_df, k + '_uci', v[1][1])
         else: 
             print(f"- {k}: {v * 100:.2f}")
+            write_result_to_table(results_df, k, v[0] * 100)
 
     # Plot confusion matrix and graphs
     #plot_graphs_for_dataset(args.dataset, args.split, output_dir)
     #plot_confusion_matrix(accumulated_gt, accumulated_predictions, actions_dict, output_dir, normalized='true')
-    #results_df.to_excel('./results.xlsx', index=False)
+    results_df.to_excel('./results.xlsx', index=False)
 
 
 if __name__ == '__main__':
