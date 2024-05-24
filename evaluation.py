@@ -1,10 +1,12 @@
+import sys
 import numpy as np
 import pandas as pd
 import argparse
 from sklearn import metrics
-from utils import read_file, load_action_map, plot_graphs_for_dataset, plot_confusion_matrix, edit_score, collaps_confusion_matrix, prepare_results
 from scipy.special import softmax
 from sklearn.preprocessing import OneHotEncoder
+sys.path.append('include/')
+from utils import read_file, load_action_map, plot_graphs_for_dataset, plot_confusion_matrix, edit_score, collaps_confusion_matrix, prepare_results
 
 
 def remove_columns(probabilites, actions_dict, gt_content):

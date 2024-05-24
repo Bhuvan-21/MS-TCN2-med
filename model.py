@@ -9,8 +9,10 @@ import copy
 import numpy as np
 from loguru import logger
 from tqdm import tqdm
-from utils import write_str_to_file
 from focalloss import FocalLoss
+sys.path.append('include/')
+from utils import write_str_to_file
+
 
 class MS_TCN2(nn.Module):
     def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes):

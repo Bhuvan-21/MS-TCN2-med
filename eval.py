@@ -1,10 +1,9 @@
-#!/usr/bin/python2.7
-# adapted from: https://github.com/colincsl/TemporalConvolutionalNetworks/blob/master/code/metrics.py
-
+import sys
 import numpy as np
 import pandas as pd
 import argparse
 from sklearn import metrics
+sys.path.append('include/')
 from utils import read_file, load_action_map, get_labels_start_end_time, plot_graphs_for_dataset, plot_confusion_matrix
 
 
