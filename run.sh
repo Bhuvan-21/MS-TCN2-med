@@ -22,3 +22,4 @@ python main.py --action=predict --dataset=${1} --split=${2} --num_epochs=${3} \
 	       --weights_coeff=${9-1.0}
 
 python eval.py --dataset=${1} --split=${2} 
+python evaluation.py --dataset=${1} --split=${2} 

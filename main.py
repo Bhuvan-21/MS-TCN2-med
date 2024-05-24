@@ -57,6 +57,8 @@ def parse_arguments():
     parser.add_argument('--loss_focal', default=0.0, type=float)
     parser.add_argument('--weights', default=None)
     parser.add_argument('--weights_coeff', default=1.0, type=float)
+    parser.add_argument('--adaptive_mse', default=True, type=bool)
+    parser.add_argument('--window_mse', default=30, type=int)
     return parser.parse_args()
 
 
@@ -123,12 +125,14 @@ def run(args):
     gt_path = "./data/"+args.dataset+"/groundTruth/"
 
     actions_dict = load_actions(f"./data/{args.dataset}/mapping.txt")
-    weights = load_weights(f"./data/{args.dataset}/weights.txt", actions_dict) if args.weights else None
+    weights = load_weights(f"./data/{args.dataset}/weights.txt", actions_dict) if args.weights != "None" else None
 
     model_dir, results_dir = create_directories(args.dataset, args.split)
 
     num_classes = len(actions_dict)
-    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, args.dataset, args.split, args.loss_mse, args.loss_dice, args.loss_focal, weights, args.weights_coeff, device)
+    trainer = Trainer(num_layers_PG, num_layers_R, num_R, num_f_maps, features_dim, num_classes, 
+                      args.dataset, args.split, args.loss_mse, args.loss_dice, args.loss_focal, weights, 
+                      args.weights_coeff, args.adaptive_mse, args.window_mse, device)
     if args.action == "train":
         batch_gen = BatchGenerator(num_classes, actions_dict, gt_path, features_path, sample_rate)
         batch_gen.read_data(vid_list_file)

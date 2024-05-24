@@ -87,6 +87,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', default="gtea")
     parser.add_argument('--split', default='1')
+    parser.add_argument('--sample_rate', default=1, type=int)
     args = parser.parse_args()
 
     ground_truth_path = "./data/"+args.dataset+"/groundTruth/"
@@ -121,6 +122,10 @@ def main():
         recog_file = recog_path + vid.split('.')[0]
         recog_content = read_file(recog_file).split('\n')[1].split()
         recog_scores = np.load(scores_path + vid.split('.')[0] + ".npy")
+
+        if len(recog_content) > len(gt_content):
+            gt_content = gt_content[::args.sample_rate]
+            recog_content = recog_content[::args.sample_rate]
         
         # count correct predictions
         for i in range(len(gt_content)):

@@ -128,7 +128,7 @@ class DilatedResidualLayer(nn.Module):
 
 
 class Trainer:
-    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes, dataset, split, loss_mse, loss_dice, loss_focal, weights, w_coeff, device):
+    def __init__(self, num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes, dataset, split, loss_mse, loss_dice, loss_focal, weights, w_coeff, adaptive_mse, window_mse, device):
         self.model = MS_TCN2(num_layers_PG, num_layers_R, num_R, num_f_maps, dim, num_classes)
         self.num_classes = num_classes
         self.loss_mse = loss_mse         #lambda parameter for weighting of MSE and CEL loss 
@@ -141,10 +141,12 @@ class Trainer:
         self.ce = nn.CrossEntropyLoss(ignore_index=-100, weight=self.weights)
         self.mse = nn.MSELoss(reduction='none')
         self.fl = FocalLoss(gamma=self.loss_focal_param, alpha=self.weights) if loss_focal > 0.0 else self.ce
-        self.mse_window = 30
+        self.mse_window = window_mse
+        self.adaptive_mse = adaptive_mse
 
         logger.add('logs/' + dataset + "_" + split + "_{time}.log")
         logger.add(sys.stdout, colorize=True, format="{message}")
+        logger.info(f"Starting training with the paramters: num_layers_PG={num_layers_PG}, num_layers_R={num_layers_R}, num_R={num_R}, num_f_maps={num_f_maps}, fdims={dim}, num_classes={num_classes}, loss_mse={loss_mse}, loss_dice={loss_dice}, loss_focal={loss_focal}, weights={self.weights}, w_coeff={w_coeff}, adaptive_mse={self.adaptive_mse}, window_mse={self.mse_window}")
 
     def train(self, save_dir, batch_gen, num_epochs, batch_size, learning_rate, device):
         self.model.train()
@@ -170,7 +172,8 @@ class Trainer:
                     class_changes_tensor = torch.diff(batch_target.view(-1)) # get class changes that should not be mse punished
                     class_changes_tensor = torch.nonzero(class_changes_tensor).squeeze()
                     for elm in class_changes_tensor:
-                        if elm <= self.mse_window or batch_target.view(-1).shape[0] - elm <= self.mse_window: continue # Exclude beginning/end gt
+                        if elm <= self.mse_window or batch_target.view(-1).shape[0] - elm <= self.mse_window or not self.adaptive_mse: 
+                            continue # Exclude beginning/end gt
                         mse_values[0, elm-self.mse_window//2:elm+self.mse_window//2] = mse_values[0, elm:elm+smooth_vec.shape[0]] * smooth_vec
                     loss += self.loss_mse * torch.mean(mse_values)
                     loss += self.loss_dice * self.calc_dice_loss(p, batch_target.view(-1), softmax=True)
