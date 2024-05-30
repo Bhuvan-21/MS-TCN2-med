@@ -22,6 +22,7 @@ def run(dataset, tries, num_epochs, features_dim, device):
     base_dir = './'
     main_path = join(base_dir, 'main.py')
     eval_path = join(base_dir, 'eval.py')
+    eval2_path = join(base_dir, 'evaluation.py')
 
     hp_space = {
         'lambda': [0.15, 0.25, 0.35],
@@ -70,6 +71,7 @@ def run(dataset, tries, num_epochs, features_dim, device):
                       ], shell=False, check=False)
         #Evaluate predictions
         subprocess.run(['python', eval_path, f'--dataset={dataset}', f'--split={evaluation_split}'], shell=False, check=False)
+        subprocess.run(['python', eval2_path, f'--dataset={dataset}', f'--split={evaluation_split}'], shell=False, check=False)
 
 
 if __name__ == '__main__':

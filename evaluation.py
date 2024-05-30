@@ -18,7 +18,7 @@ def remove_columns(probabilites, actions_dict, gt_content):
     return probabilites
 
 
-def bootstrap_metric(results, metric, alpha=0.5, num_samples=500, seed=0):
+def bootstrap_metric(results, metric, alpha=0.5, num_samples=300, seed=0):
     rng = np.random.RandomState(seed=seed)
     idx = np.arange(len(results['labels']))
     accumulation_metric = []
@@ -106,7 +106,7 @@ def evaluation():
     results = prepare_results(ground_truth_path, predictions_path, actions_dict, sample_rate=5)
     scores['boot_accuracy'] = bootstrap_metric(results, metrics.accuracy_score)
     # scores['IoU'] = metrics.jaccard_score(accumulated_gt, accumulated_predictions, average='macro')
-    scores['f1_micro'] = bootstrap_metric(results, lambda a, b: metrics.f1_score(a, b, average='micro'))
+    scores['f1_micro'] = bootstrap_metric(results, lambda a, b: metrics.f1_score(a, b, average='macro'))
     scores['boot_roc_auc'] = bootstrap_metric(results, metrics.roc_auc_score)
     scores['boot_pr_auc'] = bootstrap_metric(results, metrics.average_precision_score)
     scores['sensitivity'] = bootstrap_metric(results, lambda a, b: calc_sen_spec(a, b))
