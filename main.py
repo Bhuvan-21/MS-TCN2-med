@@ -31,12 +31,12 @@ def create_results_table(args, results_dir):
     df.to_excel('./results.xlsx', index=False)
 
 
-def setup_device(seed):
+def setup_device(seed, device="cuda:0"):
     random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
-    return torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    return torch.device(device if torch.cuda.is_available() else "cpu")
 
 
 def parse_arguments():
@@ -59,6 +59,7 @@ def parse_arguments():
     parser.add_argument('--weights_coeff', default=1.0, type=float)
     parser.add_argument('--adaptive_mse', default=True, type=bool)
     parser.add_argument('--window_mse', default=30, type=int)
+    parser.add_argument('--device', default='cuda:0')
     return parser.parse_args()
 
 
@@ -102,7 +103,7 @@ def load_weights(weight_file, action_dict, inverse=True):
 
 
 def run(args):
-    device = setup_device(1538574472)
+    device = setup_device(1538574472, device=args.device)
     
     num_epochs = args.num_epochs
     features_dim = args.features_dim

@@ -8,7 +8,9 @@ python main.py --action=train --dataset=${1} --split=${2} --num_epochs=${3} \
                --loss_dice=${6:-0.0} \
                --loss_focal=${7:-0.0} \
                --weights=${8-None} \
-	       --weights_coeff=${9-1.0}
+               --weights_coeff=${9-1.0} \
+               --device=cuda:0
+
 
 python main.py --action=predict --dataset=${1} --split=${2} --num_epochs=${3} \
                --num_layers_PG=${10-11} \
@@ -19,7 +21,8 @@ python main.py --action=predict --dataset=${1} --split=${2} --num_epochs=${3} \
                --loss_dice=${6:-0.0} \
                --loss_focal=${7:-0.0} \
                --weights=${8-None} \
-	       --weights_coeff=${9-1.0}
+               --weights_coeff=${9-1.0} \
+               --device=cuda:0
 
 python eval.py --dataset=${1} --split=${2} 
 python evaluation.py --dataset=${1} --split=${2} 
