@@ -25,10 +25,11 @@ def run(dataset, tries, num_epochs, features_dim, device):
     eval2_path = join(base_dir, 'evaluation.py')
 
     hp_space = {
-        'lambda': [0.15, 0.25, 0.35],
-        'refinement': [1, 3, 4, 5],
-        'layers_PG': [11, 12, 13, 14],
-        'layers_R': [10, 11, 12, 13],
+        'lambda': [0.25, 0.30, 0.35, 0.40],
+        'num_R': [3, 4, 5],
+        'layers_PG': [12, 13],
+        'layers_R': [11, 12, 13],
+        'amse': [20] 
     }
     keys, values = zip(*hp_space.items())
     permutations = [dict(zip(keys, v)) for v in itertools.product(*values)]
@@ -38,7 +39,7 @@ def run(dataset, tries, num_epochs, features_dim, device):
 
     for i, perm in enumerate(permutations[:tries]):
         cur_fold = 0 # i % folds
-        print(f'Running permutation {perm} on dataset {dataset}_split{cur_fold}')
+        print(f'Running permutation #{i} {perm} on dataset {dataset}_split{cur_fold}')
         # Train model on split
         subprocess.run(['python', main_path, 
                       '--action=train', 
@@ -47,11 +48,13 @@ def run(dataset, tries, num_epochs, features_dim, device):
                       f'--num_epochs={num_epochs}',
                       f'--features_dim={features_dim}',
                       f'--loss_mse={perm["lambda"]}', 
-                      f'--num_R={perm["refinement"]}',
+                      f'--num_R={perm["num_R"]}',
                       f'--num_layers_PG={perm["layers_PG"]}', 
                       f'--num_layers_R={perm["layers_R"]}',
                       f'--device={device}', 
-                      '--weights=None'
+                      '--weights=None',
+                      f'--window_mse={perm["amse"]}',
+                      '--adaptive_mse'
                       ], shell=False, check=False)
 
         #Run predictions on test set
@@ -63,11 +66,13 @@ def run(dataset, tries, num_epochs, features_dim, device):
                       f'--num_epochs={num_epochs}',
                       f'--features_dim={features_dim}',
                       f'--loss_mse={perm["lambda"]}', 
-                      f'--num_R={perm["refinement"]}',
+                      f'--num_R={perm["num_R"]}',
                       f'--num_layers_PG={perm["layers_PG"]}', 
                       f'--num_layers_R={perm["layers_R"]}',
                       f'--device={device}',
-                      '--weights=None'
+                      '--weights=None',
+                      f'--window_mse={perm["amse"]}',
+                      '--adaptive_mse'
                       ], shell=False, check=False)
         #Evaluate predictions
         subprocess.run(['python', eval_path, f'--dataset={dataset}', f'--split={evaluation_split}'], shell=False, check=False)

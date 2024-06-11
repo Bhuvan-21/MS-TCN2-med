@@ -317,7 +317,7 @@ def plot_confusion_matrix(ground_truth, predictions, actions_dict, output_dir, n
     
     display = metrics.ConfusionMatrixDisplay.from_predictions(ground_truth, predictions, labels=action_labels, 
                                                               normalize=normalized, display_labels=action_labels)
-    display.plot(ax=ax, cmap="viridis", values_format=form, colorbar=False)
+    display.plot(ax=ax, cmap="Blues", values_format=form, colorbar=False)
     # ax.set_title(f"Confusion Matrix - {suffix}")
     ax.set_xticklabels(ax.get_xticklabels(), rotation=40)
     ax.set_yticklabels(['\n_'.join(l.get_text().split('_')) for l in ax.get_yticklabels()], rotation=0)

@@ -44,7 +44,7 @@ def get_labels(dataset_name):
     return labels
 
 
-def get_colormap(labels, cm_name='viridis'):
+def get_colormap(labels, cm_name='Blues'):
     colormap = colormaps[cm_name]
     colors = colormap(np.linspace(0, 1, len(labels)))
     color_mapping = {labels[i]: colors[i, :][:3] for i in range(len(labels))}
