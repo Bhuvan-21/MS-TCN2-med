@@ -117,7 +117,7 @@ def evaluation():
     print(f"# Average scores for {args.dataset}, split {args.split}:")
     for k, v in scores.items(): # Print and write scores
         if type(v) == tuple:
-            print(f"- {k}: {v[0] * 100:.2f} ({v[1][0]:.3f} - {v[1][1]:.3f})")
+            print(f"- {k}: {v[0] * 100:.2f} ({v[1][0]:.4f} - {v[1][1]:.4f})")
             write_result_to_table(results_df, k, v[0] * 100)
             write_result_to_table(results_df, k + '_lci', v[1][0])
             write_result_to_table(results_df, k + '_uci', v[1][1])

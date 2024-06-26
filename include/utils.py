@@ -313,16 +313,20 @@ def plot_confusion_matrix(ground_truth, predictions, actions_dict, output_dir, n
     suffix = 'Normalized' if normalized is not None else 'Default'
     form = ".2%" if normalized is not None else "d"
     print(f"Plotting confusion matrix, plot-mode: {suffix.lower()}...")
-    plt.rcParams.update({'font.size': 16})
-    
+    plt.rcParams.update({'font.size': 20})
+
     display = metrics.ConfusionMatrixDisplay.from_predictions(ground_truth, predictions, labels=action_labels, 
                                                               normalize=normalized, display_labels=action_labels)
     display.plot(ax=ax, cmap="Blues", values_format=form, colorbar=False)
     # ax.set_title(f"Confusion Matrix - {suffix}")
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=40)
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=40, fontsize=24)
     ax.set_yticklabels(['\n_'.join(l.get_text().split('_')) for l in ax.get_yticklabels()], rotation=0)
-    ax.tick_params(labelsize=16)
-    
+    ax.tick_params(labelsize=24)
+    plt.rc("axes", titlesize=24) 
+    plt.rc("axes", labelsize=24)
+    plt.rc("font", size=24)
+
+    plt.tight_layout()
     plt.show()
     fig.savefig(os.path.join(output_dir, f"confusion_matrix_{suffix.lower()}.png"))
     plt.close()
