@@ -180,9 +180,16 @@ def f_score(recognized, ground_truth, overlap, bg_class=["background"]):
             hits[idx] = 1
         else:
             fp += 1
-    fn = len(y_label) - sum(hits)
-    tn = len(p_label) - tp - fp - fn
-    return float(tp), float(fp), float(tn), float(fn)
+    fn = len(y_label) - sum(hits) 
+    return float(tp), float(fp), float(fn)
+
+
+def acc_phase(recognized, ground_truth, overlap=0.25, bg_class=[""]):
+    tp, fp, fn = f_score(recognized, ground_truth, overlap, bg_class)
+    total_instances = tp + fp + fn
+    accuracy = tp /  total_instances if total_instances > 0 else 0
+    #print(tp, fp, fn, total_instances)
+    return accuracy * 100.0
 
 
 def write_str_to_file(filename, content):
@@ -250,6 +257,10 @@ def get_labels(dataset_name):
     if "cataract101" in dataset_name:
         labels = ['action_start', 'incision', 'viscous_agent_injection', 'rhexis', 'hydrodissection', 'phacoemulsificiation', 'irrigation_aspiration', 
                   'capsule_polishing', 'lens_implant_settingup', 'viscous_agent_removal', 'tonifying_antibiotics', 'action_end']
+    elif "ieee50" in dataset_name:
+        labels = ['background', 'toric_marking', 'implant_ejection', 'incision', 'viscodilatation', 'capsulorhexis', 'hydrodissetion', 
+                  'nucleus_breaking', 'phacoemulsification', 'vitrectomy', 'irrigation_aspiration', 'preparing_implant', 'manual_aspiration', 
+                  'implantation', 'positioning', 'ovd_aspiration', 'suturing', 'sealing_control', 'wound_hydratation']
     else:
         labels = ['background', 'main_incision_entry', 'cautery', 'peritomy', 'tunnel_suture', 'hydroprocedure', 'conjunctival_cautery', 'tunnel', 
                   'nucleus_prolapse', 'OVD_IOL_insertion', 'sideport', 'scleral_groove', 'OVD_injection', 'cortical_wash', 'OVD_wash', 'stromal_hydration', 

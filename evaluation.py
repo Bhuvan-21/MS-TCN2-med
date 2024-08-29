@@ -6,19 +6,30 @@ from sklearn import metrics
 from scipy.special import softmax
 from sklearn.preprocessing import OneHotEncoder
 sys.path.append('include/')
-from utils import read_file, load_action_map, plot_graphs_for_dataset, plot_confusion_matrix, edit_score, collaps_confusion_matrix, prepare_results
+from utils import read_file, load_action_map, plot_graphs_for_dataset, plot_confusion_matrix, edit_score, collaps_confusion_matrix, prepare_results, acc_phase
 
 
-def remove_columns(probabilites, actions_dict, gt_content):
+def remove_columns(probabilites, actions_dict, gt_content, axis=0):
     idx_to_remove = []
     for action in actions_dict.keys():
         if action not in set(gt_content):
             idx_to_remove.append(actions_dict[action])
-    probabilites = np.delete(probabilites, idx_to_remove, axis=0)
+    probabilites = np.delete(probabilites, idx_to_remove, axis=axis)
     return probabilites
 
+def insert_ground_truth(actions_dict, gt_content, axis=0):
+    idx_to_insert = []
+    for action in actions_dict.keys():
+        if action not in set(gt_content):
+            idx_to_insert.append(actions_dict[action])
+    for i, idx in enumerate(idx_to_insert): 
+        gt_content[-i-1] = idx
+    if len(idx_to_insert) > 0:
+        print("Had to insert index", idx_to_insert)
+    return gt_content
 
-def bootstrap_metric(results, metric, alpha=0.5, num_samples=300, seed=0):
+
+def bootstrap_metric(results, metric, alpha=0.5, num_samples=300, seed=0, action_dict=None):
     rng = np.random.RandomState(seed=seed)
     idx = np.arange(len(results['labels']))
     accumulation_metric = []
@@ -29,14 +40,18 @@ def bootstrap_metric(results, metric, alpha=0.5, num_samples=300, seed=0):
         boot_label = [label for j, label in enumerate(results['labels']) if j in pred_idx]
         boot_pred = [pred for j, pred in enumerate(results['predictions']) if j in pred_idx]
         boot_prob = [probs for j, probs in enumerate(results['probs']) if j in pred_idx]
-        
+        if action_dict != None:
+            boot_label = [insert_ground_truth(action_dict, label, axis=0) for label in boot_label]
+
         if metric == metrics.roc_auc_score or metric == metrics.average_precision_score:
             y_true = encoder.fit_transform(np.concatenate(boot_label).reshape(-1, 1)).T
             test_mean = metric(y_true.ravel(), np.concatenate(boot_prob, axis=1).ravel(), average='macro')
-        elif metric == edit_score:
-            scores = [metric(pred, label, bg_class=[0]) for pred, label in zip(boot_pred, boot_label)]
+        elif metric == edit_score or metric == acc_phase:
+            scores = [metric(pred[:-10], label[:-10], bg_class=[0]) for pred, label in zip(boot_pred, boot_label)]
             test_mean = np.mean(scores) / 100
         else:
+            boot_label = [label[:-10] for label in boot_label]
+            boot_pred = [pred[:-10] for pred in boot_pred]
             test_mean = metric(np.concatenate(boot_label), np.concatenate(boot_pred))
         
         accumulation_metric.append(test_mean)
@@ -71,11 +86,12 @@ def evaluation():
     tp, tn, fp, fn = 0, 0, 0, 0
     scores = {
         "boot_accuracy": 0,
+        "boot_acc_phase": 0,
         "boot_edit": [],
         "f1_micro": [],
         # "IoU": [],
-        "boot_roc_auc": [],
-        "boot_pr_auc": [],
+        "boot_roc_auc": (0, (0, 0)),
+        "boot_pr_auc": (0, (0, 0)),
         "sensitivity": [], # Recall
         "specificity": []
     }
@@ -105,10 +121,11 @@ def evaluation():
 
     results = prepare_results(ground_truth_path, predictions_path, actions_dict, sample_rate=5)
     scores['boot_accuracy'] = bootstrap_metric(results, metrics.accuracy_score)
+    scores['boot_acc_phase'] = bootstrap_metric(results, acc_phase)
     # scores['IoU'] = metrics.jaccard_score(accumulated_gt, accumulated_predictions, average='macro')
     scores['f1_micro'] = bootstrap_metric(results, lambda a, b: metrics.f1_score(a, b, average='macro'))
-    scores['boot_roc_auc'] = bootstrap_metric(results, metrics.roc_auc_score)
-    scores['boot_pr_auc'] = bootstrap_metric(results, metrics.average_precision_score)
+    scores['boot_roc_auc'] = bootstrap_metric(results, metrics.roc_auc_score, action_dict={v:v for k,v in actions_dict.items()})
+    scores['boot_pr_auc'] = bootstrap_metric(results, metrics.average_precision_score, action_dict={v:v for k,v in actions_dict.items()})
     scores['sensitivity'] = bootstrap_metric(results, lambda a, b: calc_sen_spec(a, b))
     scores['specificity'] = bootstrap_metric(results, lambda a, b: calc_sen_spec(a, b, metric='spec'))
     # scores['edit'] = np.mean(scores['edit']) / 100
