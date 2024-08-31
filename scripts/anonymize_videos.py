@@ -28,7 +28,7 @@ def anonymize_videos(input_dir, output_dir):
                 break
 
             # Apply Gaussian blur to the first 100 rows
-            frame[:box_height, :] = cv2.boxFilter(frame[:box_height, :], -1, (15, 15)) #cv2.blur(frame[:box_height, :], (20, 20), 0)
+            frame[:box_height, :] = cv2.boxFilter(frame[:box_height, 200:], -1, (15, 15)) #cv2.blur(frame[:box_height, :], (20, 20), 0)
             out.write(frame) # Write the frame to the output video
         
         cap.release()
