@@ -26,7 +26,7 @@ def rescale_videos(source_folder, output_folder):
             continue
 
         # Run the ffmpeg command to scale the video
-        ffmpeg_command = f'ffmpeg -stats -v repeat+level+warning -i "{input_file}" -vf scale=iw/2:ih/2:flags=lanczos "{output_file}"'
+        ffmpeg_command = f'ffmpeg -stats -v repeat+level+warning -i "{input_file}" -vf scale=iw/2:ih/2:flags=lanczos -c:v libx264 -preset medium -crf 18 "{output_file}"'
         os.system(ffmpeg_command)
 
     click.echo("Videos rescaled successfully!")

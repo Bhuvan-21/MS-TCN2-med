@@ -19,7 +19,7 @@ def anonymize_videos(input_dir, output_dir):
         box_height = height // 15
         fps = int(cap.get(cv2.CAP_PROP_FPS))
         
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')
         out = cv2.VideoWriter(os.path.join(output_dir, video), fourcc, fps, (width, height))
         
         while cap.isOpened():
@@ -28,7 +28,7 @@ def anonymize_videos(input_dir, output_dir):
                 break
 
             # Apply Gaussian blur to the first 100 rows
-            frame[:box_height, :] = cv2.boxFilter(frame[:box_height, 200:], -1, (15, 15)) #cv2.blur(frame[:box_height, :], (20, 20), 0)
+            frame[:box_height, 220:] = cv2.boxFilter(frame[:box_height, 220:], -1, (15, 15)) #cv2.blur(frame[:box_height, :], (20, 20), 0)
             out.write(frame) # Write the frame to the output video
         
         cap.release()
