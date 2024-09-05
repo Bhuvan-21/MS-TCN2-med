@@ -25,7 +25,7 @@ def run(dataset, folds, num_epochs, features_dim):
                       f'--split={k}', 
                       f'--num_epochs={num_epochs}',
                       f'--features_dim={features_dim}',
-                      '--num_layers_PG=11', '--num_layers_R=10', '--num_R=3'
+                      '--num_layers_PG=13', '--num_layers_R=13', '--num_R=4', '--loss_mse=0.35', '--adaptive_mse'
                       ], shell=False, check=False)
 
         #Run predictions on test set
@@ -35,7 +35,7 @@ def run(dataset, folds, num_epochs, features_dim):
                       f'--split={k}', 
                       f'--num_epochs={num_epochs}',
                       f'--features_dim={features_dim}',
-                      '--num_layers_PG=11', '--num_layers_R=10', '--num_R=3'
+                      '--num_layers_PG=13', '--num_layers_R=13', '--num_R=4', '--loss_mse=0.35', '--adaptive_mse'
                       ], shell=False, check=False)
 
         #Evaluate predictions

@@ -31,7 +31,7 @@ def create_results_table(args, results_dir):
     df.to_excel('./results.xlsx', index=False)
 
 
-def setup_device(seed, device="cuda:0"):
+def setup_device(seed, device="cuda:3"):
     random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -59,7 +59,7 @@ def parse_arguments():
     parser.add_argument('--weights_coeff', default=1.0, type=float)
     parser.add_argument('--adaptive_mse', action='store_true')
     parser.add_argument('--window_mse', default=30, type=int)
-    parser.add_argument('--device', default='cuda:0')
+    parser.add_argument('--device', default='cuda:3')
     return parser.parse_args()
 
 

@@ -26,7 +26,7 @@ def anonymize_videos(input_dir, output_dir):
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         box_height = height // 15
-        box_indent = width // 8.5
+        box_indent = width // 8
         fps = cap.get(cv2.CAP_PROP_FPS)
         
         fourcc = cv2.VideoWriter_fourcc(*'avc1')

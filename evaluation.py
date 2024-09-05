@@ -29,7 +29,7 @@ def insert_ground_truth(actions_dict, gt_content, axis=0):
     return gt_content
 
 
-def bootstrap_metric(results, metric, alpha=0.5, num_samples=300, seed=0, action_dict=None):
+def bootstrap_metric(results, metric, alpha=0.5, num_samples=500, seed=0, action_dict=None):
     rng = np.random.RandomState(seed=seed)
     idx = np.arange(len(results['labels']))
     accumulation_metric = []
