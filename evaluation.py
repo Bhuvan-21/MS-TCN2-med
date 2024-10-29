@@ -109,6 +109,8 @@ def evaluation():
         
         gt_content = [actions_dict[action] for action in gt_content] # transform actions names to integers
         predictions = [actions_dict[action] for action in predictions]
+        if len(gt_content) > len(predictions):
+            gt_content = gt_content[:len(predictions)]
         #scores['edit'].append(edit_score(predictions, gt_content, bg_class=[0]))
         
         accumulated_gt += gt_content # Accumlate results for later processing

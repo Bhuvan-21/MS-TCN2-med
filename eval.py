@@ -121,10 +121,12 @@ def main():
         recog_file = recog_path + vid.split('.')[0]
         recog_content = read_file(recog_file).split('\n')[1].split()
         recog_scores = np.load(scores_path + vid.split('.')[0] + ".npy")
-
+        
         if len(recog_content) > len(gt_content):
             gt_content = gt_content[::args.sample_rate]
             recog_content = recog_content[::args.sample_rate]
+        elif len(gt_content) > len(recog_content):
+            gt_content = gt_content[:len(recog_content)]
         
         # count correct predictions
         for i in range(len(gt_content)):
