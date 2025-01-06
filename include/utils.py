@@ -261,6 +261,8 @@ def get_labels(dataset_name):
         labels = ['background', 'toric_marking', 'implant_ejection', 'incision', 'viscodilatation', 'capsulorhexis', 'hydrodissetion', 
                   'nucleus_breaking', 'phacoemulsification', 'vitrectomy', 'irrigation_aspiration', 'preparing_implant', 'manual_aspiration', 
                   'implantation', 'positioning', 'ovd_aspiration', 'suturing', 'sealing_control', 'wound_hydratation']
+    elif "paxos" in dataset_name:
+        labels = ['background', 'Fundus_Visibile']
     else:
         labels = ['background', 'main_incision_entry', 'cautery', 'peritomy', 'tunnel_suture', 'hydroprocedure', 'conjunctival_cautery', 'tunnel', 
                   'nucleus_prolapse', 'OVD_IOL_insertion', 'sideport', 'scleral_groove', 'OVD_injection', 'cortical_wash', 'OVD_wash', 'stromal_hydration', 

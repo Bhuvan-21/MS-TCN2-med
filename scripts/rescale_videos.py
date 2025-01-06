@@ -10,10 +10,10 @@ from tqdm import tqdm
 def rescale_videos(source_folder, output_folder):
     if os.path.exists(output_folder):
         click.echo('Output path already exists...')
-    os.mkdir(output_folder)
+    os.makedirs(output_folder, exist_ok=True)
 
     # Get a list of all video files in the source folder
-    video_files = [f for f in os.listdir(source_folder) if f.endswith(('.mp4', '.avi', '.mkv'))]
+    video_files = [f for f in os.listdir(source_folder) if f.endswith(('.mp4', '.avi', '.mkv', '.MOV'))]
 
     # Iterate over each video file
     for video_file in tqdm(video_files, total=len(video_files)):
