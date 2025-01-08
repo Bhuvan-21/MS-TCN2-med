@@ -27,7 +27,7 @@ def read_gt_file(gt_file, fps=30, name_bg="background", name_inf="Fundus_Visibil
         elif classification == name_bg and start_frame is not None:
             end_frame = i - 1 # End of an informative phase
             start_time = secs_to_hms(start_frame / fps)
-            end_time = secs_to_hms(end_frame / fps)
+            end_time = secs_to_hms(end_frame / fps + 1)
             informative_phases.append((start_time, end_time))
             start_frame = None
 
