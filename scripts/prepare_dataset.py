@@ -29,7 +29,7 @@ def run(input_path, gt_path, check, transpose):
         gt_len = len(ground_truth)
 
         difference = gt_len - feat.shape[1]
-        if feat.shape[0] > feat.shape[1]:
+        if feat.shape[0] > feat.shape[1] and feat.shape[0] != 1024:
             print('Incorrect feature shape, is the matrix transposed yet? ', feat.shape)
             break
         if gt_len == feat.shape[1]:

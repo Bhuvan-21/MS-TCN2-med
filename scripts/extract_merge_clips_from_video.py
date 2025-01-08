@@ -1,14 +1,15 @@
-import subprocess
+import re
 import os
 import click
 import shutil
-
+import subprocess
+from tqdm.auto import tqdm
 
 def secs_to_hms(seconds):
-    hours = int(seconds // 3600)
+    hours = 0 #int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
-    return f"{hours:02}:{minutes:02}:{secs:02}"
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 
 def read_gt_file(gt_file, fps=30, name_bg="background", name_inf="Fundus_Visibile"):
@@ -32,17 +33,23 @@ def read_gt_file(gt_file, fps=30, name_bg="background", name_inf="Fundus_Visibil
 
     if start_frame is not None: # Handle case where the last frames are informative
         start_time = secs_to_hms(start_frame / fps)
-        end_time = secs_to_hms((len(lines) - 1) / fps)
+        end_time = secs_to_hms(len(lines) / fps)
         informative_phases.append((start_time, end_time))
         
     return informative_phases
     
 
 def get_corresponding_video(gt_file, videos):
+    video_id = None
     id_idx = gt_file.find("IMG_")
-    assert id_idx != -1, f"Could not find video ID in gt_file: {gt_file}"
-    
-    video_id = gt_file[id_idx+4:id_idx + 8]
+    if id_idx == -1:
+        pattern = r'R\d{3}[RL]\d?' 
+        match = re.search(pattern, gt_file)
+        if match: video_id = match.group(0)
+    else:
+        video_id = gt_file[id_idx+4:id_idx + 8]
+
+    assert video_id is not None, f"Could not find video ID in gt_file: {gt_file}" 
     
     for video in videos:
         if video_id in video:
@@ -67,27 +74,35 @@ def run(input_path, output_path, phases_path):
     os.makedirs(output_path, exist_ok=True)
     
     temp_folder = "/tmp/temp_clips"
-    for gt in gt_files:
-        os.makedirs(temp_folder, exist_ok=True)
+    for gt in tqdm(gt_files, total=len(gt_files)):
+        if os.path.exists(temp_folder): shutil.rmtree(temp_folder) # Clean-up
+        os.makedirs(temp_folder, exist_ok=False)
         informative_phases = read_gt_file(os.path.join(phases_path, gt))
         video_path = get_corresponding_video(gt, videos)
-        assert video_path is not None, f"Could not find corresponding video for gt file: {gt}"
+        # assert video_path is not None, f"Could not find corresponding video for gt file: {gt}"
+        if video_path is None:
+            print(f"Video match for {gt} not found. Skipping...")
+            continue
+        elif os.path.exists(os.path.join(output_path, video_path)):
+            print(f"Clips were already extracted from {video_path}. Continuing with next file...")
+            continue
         
         clip_files = []
         
         for i, (start, end) in enumerate(informative_phases):
             output_clip = os.path.join(temp_folder, f"clip_{i + 1}.mp4")
             print(f"Extracting clip {i + 1}: {start} to {end} -> {output_clip}")
-            subprocess.run(["ffmpeg", "-i", os.path.join(input_path, video_path), "-ss", start, "-to", end, "-c", "copy", output_clip, "-y"], check=True)
+
+            subprocess.run(["ffmpeg", "-loglevel", "error", "-i", os.path.join(input_path, video_path), "-ss", start, "-to", end, "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-an", output_clip, "-y"], check=False)
             clip_files.append(output_clip)
         
         merge_file = create_merge_file(clip_files, temp_folder) # Create a file list for merging
-        
         print(f"Merging clips into {output_path}")
         output_file = os.path.join(output_path, video_path)
-        subprocess.run(["ffmpeg", "-f", "concat", "-safe", "0", "-i", merge_file, "-c", "copy", output_file, "-y"], check=True)
         
-        shutil.rmtree(temp_folder) # Clean-up
+        if len(clip_files) > 0:
+            subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", merge_file, "-c:v", "libx264", "-crf", "23", "-preset", "fast", "-an", output_file, "-y"], check=True)
+        
         print(f"Final merged video saved to {output_file}")
 
 
