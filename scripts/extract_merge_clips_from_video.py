@@ -27,12 +27,14 @@ def read_gt_file(gt_file, fps=30, name_bg="background", name_inf="Fundus_Visibil
         elif classification == name_bg and start_frame is not None:
             end_frame = i - 1 # End of an informative phase
             start_time = secs_to_hms(start_frame / fps)
-            end_time = secs_to_hms(end_frame / fps + 1)
+            end_time = secs_to_hms(end_frame / fps)
+            if end_frame - start_frame <= fps:
+                end_time = secs_to_hms(end_frame / fps + 1)
             informative_phases.append((start_time, end_time))
             start_frame = None
 
     if start_frame is not None: # Handle case where the last frames are informative
-        start_time = secs_to_hms(start_frame / fps)
+        start_time = secs_to_hms(start_frame / fps - 1)
         end_time = secs_to_hms(len(lines) / fps)
         informative_phases.append((start_time, end_time))
         
@@ -97,7 +99,7 @@ def run(input_path, output_path, phases_path):
             clip_files.append(output_clip)
         
         merge_file = create_merge_file(clip_files, temp_folder) # Create a file list for merging
-        print(f"Merging clips into {output_path}")
+        # print(f"Merging clips into {output_path}")
         output_file = os.path.join(output_path, video_path)
         
         if len(clip_files) > 0:
