@@ -51,7 +51,7 @@ def get_colormap(labels, cm_name='Blues'):
     return color_mapping
 
 
-def plot_action_list(data, labels):
+def plot_action_list(data, labels, title=None):
     color_mapping = get_colormap(labels)
     if data[-1] == '': 
         data = data[:-1]
@@ -63,6 +63,8 @@ def plot_action_list(data, labels):
     fig, axs = plt.subplots(2, 1, figsize=(25, 6), sharex=True, sharey=True, layout="tight")
     axs[0].axis('off')
     axs[1].axis('off')
+    if title:
+        axs[0].set_title(title)
 
     colors_gt = [color_mapping[elm] for elm in labels_gt]
     ax = survey(data_gt, labels_gt, colors_gt, axs[0])

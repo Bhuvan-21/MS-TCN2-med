@@ -166,10 +166,12 @@ class Trainer:
                 optimizer.zero_grad()
                 predictions = self.model(batch_input)
                 loss = 0
+                acc_mse, acc_ce = 0.0, 0.0
                 for p in predictions: #p.shape (classes x num_frames)
                     #loss += self.ce(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1))
                     loss += self.fl(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1)) # cross-entropy loss or focal loss
-                    mse_values = torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=16) * mask[:, :, 1:]
+                    acc_ce += self.fl(p.transpose(2, 1).contiguous().view(-1, self.num_classes), batch_target.view(-1))
+                    mse_values = torch.clamp(self.mse(F.log_softmax(p[:, :, 1:], dim=1), F.log_softmax(p.detach()[:, :, :-1], dim=1)), min=0, max=16) * mask[:, :, 1:] #max = 16
                     mse_values = torch.mean(mse_values, dim=1)
                     if self.adaptive_mse: 
                         class_changes_tensor = torch.diff(batch_target.view(-1)) # get class changes that should not be mse punished
@@ -180,6 +182,8 @@ class Trainer:
                             mse_values[0, elm-self.mse_window//2:elm+self.mse_window//2] = mse_values[0, elm:elm+smooth_vec.shape[0]] * smooth_vec
                     loss += self.loss_mse * torch.mean(mse_values)
                     loss += self.loss_dice * self.calc_dice_loss(p, batch_target.view(-1), softmax=True)
+                    acc_mse += self.loss_mse * torch.mean(mse_values)
+                #print(f"Loss mse: {acc_mse}, loss ce {acc_ce}")
 
                 epoch_loss += loss.item()
                 loss.backward()
